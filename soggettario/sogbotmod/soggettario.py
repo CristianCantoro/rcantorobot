@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 #########################################################################
-# Copyright (C) 2012 Cristian Consonni <cristian.consonni@gmail.com>.
+# Copyright (C) 2013 Cristian Consonni <cristian.consonni@gmail.com>.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,94 +24,150 @@ import argparse
 import lxml
 from lxml.html import fromstring
 import rdflib
-from rdflib import Graph, Literal, Namespace, RDF, URIRef, plugin
 
-def get_name(g):
-  qname=""
-  for s, p, o in g:
-    if p == pred:
-      qname = o
+from sogbotmod import devel
 
-  return qname
+SKOSNS = rdflib.Namespace('http://www.w3.org/2004/02/skos/core#')
+THSKOSBASEURL = "http://thes.bncf.firenze.sbn.it/SKOS.php?id=%d"
+THTERMBASEURL = "http://thes.bncf.firenze.sbn.it/termine.php?id=%d"
+DBPEDIAURL = "http://it.dbpedia.org"
 
-def get_wikipedia_link(tid):
-  thesurl="http://thes.bncf.firenze.sbn.it/termine.php?id=%d" %tid
+QUERIES = {'broader': """SELECT DISTINCT ?a ?b
+                         WHERE {
+                                ?a skos:related ?b .
+                               }""",
+           'narrower':"""SELECT DISTINCT ?a ?b
+                         WHERE {
+                                ?a skos:related ?b .
+                               }""",
+           'related': """SELECT DISTINCT ?a ?b
+                         WHERE {
+                                ?a skos:related ?b .
+                               }""",
+           'used':    """SELECT DISTINCT ?a ?b
+                         WHERE {
+                                ?a skos:related ?b .
+                               }"""
+          }
+
+
+class Error(Exception):
+  """Base class for exceptions in this module."""
+  pass
+
+class Term(object):
+
+  def __init__(self, graph, tid=None):
+    self.tid = tid
+    self.graph = graph
+    self.name = None
+    self._name()
+    self.dblink = None
+    self._dblink()
+
+  def _name(self):
+    qname = None
+    pred=SKOSNS.prefLabel
+
+    for s, p, o in self.graph:
+      if p == pred:
+        qname = o
+
+    self.name = qname
+
+  def _dblink(g,skos):
+    link = None
+    pred = SKOSNS.closeMatch
+
+    for s, p, o in self.graph:
+      if p == pred:
+        if DBPEDIAURL in o:
+          resurl="%s/resource/" %DBPEDIAURL
+          link=o.replace(resurl,'')
+
+    self.dblink = link
+
+  def _register_plugin():
+    if not self._registeredPlugin:
+      plugin.register(
+      'sparql', rdflib.query.Processor,
+      'rdfextras.sparql.processor', 'Processor')
+
+      plugin.register(
+      'sparql', rdflib.query.Result,
+      'rdfextras.sparql.query', 'SPARQLQueryResult')
+
+      self._registeredPlugin=True
+
+  def _skos_query(query):
+    if not self._pluginRegistered:
+      self._register_plugin()
+
+    qres = self.graph.query(query,initNs=dict(SKOSNS))
+    return qres
+
+  def has_dblink():
+    return self.dblink is None
+
+  def get_wikilink(self,source):
+    html = fromstring(source)
+    links = html.xpath('//a/@href')
+    wikilink=[l for l in links if "it.wikipedia.org" in l][0]
+
+    wikilink=wikilink.replace(" ","_")
+    return wikilink
+
+  def used_items():
+    qres = self._skos_query(QUERIES['used'])
+    #for row in qres.result:
+
+  def related_items():
+    qres = self._skos_query(QUERIES['related'])
+    #for row in qres.result:
+
+  def narrower_items():
+    qres = self._skos_query(QUERIES['narrower'])
+    #for row in qres.result:
+
+  def broader_items():
+    qres = self._skos_query(QUERIES['broader'])
+    #for row in qres.result:
+
+
+
+class SkosGraph(rdflib.Graph):
+
+  def __init__(self, tid):
+    super(SkosGraph, self).__init__()
+    self.tid = tid
+
+    fsko = tempfile.NamedTemporaryFile()
+    skosurl=THSKOSBASEURL %tid
+    urllib.urlretrieve(skosurl, fsko.name)
+
+    self.bind('skos', SKOSNS)
+    self.parse(fsko.name)
+    fsko.close()
+
+
+# ----- main -----
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument("tid", type=int, help="term id number")
+  args = parser.parse_args()
+  
+  tid=args.tid
+
+  #qname = get_name(graph)
+  #wikilink=get_wikipedia_link(tid)
+  print "== PROCESSING: %s" %qname
+  print "-> Wikipedia page: %s" %wikilink
+
+  print "\nVoci correlate:"  
+
+  wikilink=get_wikipedia_link(tid)
+
+  thesurl=THTERMBASEURL %self.tid
   fter = urllib.urlopen(thesurl)
   ster = fter.read()
   fter.close()
-  html = fromstring(ster)
-  links = html.xpath('//a/@href')
-  wikilink=[l for l in links if "it.wikipedia.org" in l][0]
-
-  wikilink=wikilink.replace(" ","_")
-  return wikilink
-
-def dbpedia_link(g,skos):
-  link=None
-  for s, p, o in g:
-    if p == skos.closeMatch:
-      if "dbpedia" in o:
-        link=o.replace("http://it.dbpedia.org/resource/","")
-
-  #print link
-  return link
-
-parser = argparse.ArgumentParser()
-parser.add_argument("tid", type=int, help="term id number")
-args = parser.parse_args()
-
-tid=args.tid
-
-skosurl="http://thes.bncf.firenze.sbn.it/SKOS.php?id=%d" %tid
-
-wikilink=get_wikipedia_link(tid)
-
-fsko = tempfile.NamedTemporaryFile()
-urllib.urlretrieve(skosurl, fsko.name)    
-
-graph = Graph()
-skos = Namespace('http://www.w3.org/2004/02/skos/core#')
-graph.bind('skos', skos)
-
-graph.parse(fsko.name)
-fsko.close()
-
-plugin.register(
-    'sparql', rdflib.query.Processor,
-    'rdfextras.sparql.processor', 'Processor')
-plugin.register(
-    'sparql', rdflib.query.Result,
-    'rdfextras.sparql.query', 'SPARQLQueryResult')
-
-pred=skos.prefLabel
-#print pred
-qname = get_name(graph)
-
-print "== PROCESSING: %s" %qname
-print "-> Wikipedia page: %s" %wikilink
-
-print "\nVoci correlate:"
-qres = graph.query(
-    """SELECT DISTINCT ?a ?b
-       WHERE {
-          ?a skos:related ?b .
-       }""",
-    initNs=dict(
-        skos=Namespace("http://www.w3.org/2004/02/skos/core#")))
-
-for row in qres.result:
-  g = Graph()
-  relurl=row[1]
-  frel = tempfile.NamedTemporaryFile()
-  #print relurl
-  response = urllib.urlretrieve(relurl, frel.name)
-  g.parse(frel.name)
-  frel.close()
-  relwiki=dbpedia_link(g,skos)
-  rname=get_name(g)
-  reltext = "* %s is related to %s" %(qname,rname)
-  if relwiki:
-    relwiki="http://it.wikipedia.org/wiki/"+relwiki
-    reltext = reltext + " - (%s)" %relwiki
-
-  print reltext

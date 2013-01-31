@@ -1,5 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
+#########################################################################
+# Adapted from basic.py
+# found in pywikipedia-rewrite (scripts dir)
+# at https://toolserver.org/~pywikipedia/
 #
 # (C) Pywikipedia bot team, 2006-2011
 #
@@ -7,10 +11,34 @@
 #
 # version= '$Id: basic.py 10404 2012-06-21 18:19:05Z russblau $'
 #
+# Adapted by Cristian Consonni
+# Copyright (C) 2012 Cristian Consonni <cristian.consonni@gmail.com>.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program (see COPYING).
+# If not, see <http://www.gnu.org/licenses/>.
+##########################################################################
 
+# pywikipedia framework imports
 import pywikibot
 from pywikibot import pagegenerators
 from pywikibot import i18n
+
+# logging module
+import logging
+
+# MediaWiki search module
+import mwsearch
 
 # This is required for the text that is shown when you run this script
 # with the parameter -help.
@@ -55,38 +83,6 @@ class BasicBot:
         ################################################################
 
         print page.isDisambig()
-
-        # Scrive un file.
-        tmpoutfile = open("test.txt","w")
-
-        DELIMITER = '|'
-        ENCODING = 'utf-8'
-
-
-        tmpoutfile.write(text.encode(ENCODING))
-        tmpoutfile.close()
-
-        tmpinfile = open("test.txt","r")
-        lines = tmpinfile.readlines()
-        tmpinfile.close()
-
-        STRING = "{{WLM-riga|"
-        lines = [l.replace(STRING,'').replace('}}','') for l in lines if l.find(STRING)==0]
-
-        tmpfile = open("tmp.txt","a")
-        tmpfile.write(''.join(lines))
-        tmpfile.close()
-
-        #print page, '\t', len(lines)
-
-        #tmpfile = open("tmp.txt","r")
-        #reader = UnicodeReader(tmpfile, delimiter=DELIMITER, encoding=ENCODING)
-        #rowlist = list(reader) 
-
-        #print rowlist
-        
-            #if not self.save(text, page, self.summary):
-                #pywikibot.output(u'Page %s not saved.' % page.title(asLink=True))
 
     def load(self, page):
         """
@@ -193,14 +189,29 @@ def main(filelist):
     else:
         pywikibot.showHelp()
 
-def get_wikilink():
-  filelist="botlist.txt"
+def get_wikilink(termlist):
 
-  try:
-      main(filelist)
-  finally:
-      pywikibot.stopme()
+  for term in termlist:
+    results=wikipedia_search(searchterm)
+    print results
 
+    #try:
+        #main(filelist)
+    #finally:
+        #pywikibot.stopme()
+
+    sleep(5)
+    logging.info("Going to sleep for 5 seconds ...")
+
+  wikiart="Pippo"
+  wikilink=None
+
+  if wikiart is not None:
+    wikilink="http://it.wikipedia.org/wiki/%s" %wikiart
+
+  return wikilink
+
+  
 if __name__ == "__main__":
   filelist="botlist.txt"
 
