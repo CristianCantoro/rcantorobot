@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+xmlns:skos="http://www.w3.org/2004/02/skos/core#" 
+xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" 
+xmlns:dc="http://purl.org/dc/elements/1.1/" 
+xmlns:dcterms="http://purl.org/dc/terms/" 
+xmlns:nsogi="http://prefix.cc/nsogi"> 
+<rdf:Description rdf:about="http://purl.org/bncf/tid/41770">
+<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+<skos:prefLabel xml:lang="it">Baccalà</skos:prefLabel>
+<skos:inScheme rdf:resource="http://purl.org/bncf/tid/ThesCF3"/>
+<skos:inScheme rdf:resource="http://purl.org/bncf/tid/Thes"/>
+<skos:broader rdf:resource="http://purl.org/bncf/tid/46956"/>
+<skos:related rdf:resource="http://purl.org/bncf/tid/3720"/>
+<skos:related rdf:resource="http://purl.org/bncf/tid/24888"/>
+<skos:related rdf:resource="http://purl.org/bncf/tid/17555"/>
+<skos:closeMatch rdf:resource="http://it.dbpedia.org/resource/Baccalà"/>
+<skos:scopeNote>Nome comune del merluzzo adeguatamente preparato, seccato e salato nei paesi scandinavi e smerciato soprattutto in quelli mediterranei. Per il merluzzo non salato fatto seccare all'aria usare Stoccafisso</skos:scopeNote>
+<skos:editorialNote>FONTE: Soggettario; Treccani.it (voce: Baccalà1); DeM; Dev; Wikipedia</skos:editorialNote>
+</rdf:Description>
+</rdf:RDF>
