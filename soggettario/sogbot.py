@@ -18,100 +18,106 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
-import tempfile
-import urllib
 import argparse
-import lxml
-from lxml.html import fromstring
-import rdflib
-from rdflib import Graph, Literal, Namespace, RDF, URIRef, plugin
+import logging
+from sogbotmod import soggettario as sog
+from sogbotmod import template as template
 
-def get_name(g):
-  qname=""
-  for s, p, o in g:
-    if p == pred:
-      qname = o
+# ***** logging module objects and definition *****
+import logging
+from logging import config
+from logging import handlers
 
-  return qname
+LOGFORMAT_STDOUT = { logging.DEBUG: '%(module)s:%(funcName)s:%(lineno)s - %(levelname)-8s: %(message)s',
+             logging.INFO: '%(levelname)-8s: %(message)s',
+             logging.WARNING: '%(levelname)-8s: %(message)s',
+             logging.ERROR: '%(levelname)-8s: %(message)s',
+             logging.CRITICAL: '%(levelname)-8s: %(message)s'
+           }
 
-def get_wikipedia_link(tid):
-  thesurl="http://thes.bncf.firenze.sbn.it/termine.php?id=%d" %tid
-  fter = urllib.urlopen(thesurl)
-  ster = fter.read()
-  fter.close()
-  html = fromstring(ster)
-  links = html.xpath('//a/@href')
-  wikilink=[l for l in links if "it.wikipedia.org" in l][0]
+LOGFORMAT_FILE = { logging.DEBUG: "%(module)s:%(funcName)s:%(lineno)s - ***%(levelname)s***: %(message)s",
+           logging.INFO: "%(asctime)s ***%(levelname)s***: %(message)s",
+           logging.WARNING: "%(asctime)s ***%(levelname)s***: [%(module)s:%(funcName)s] %(message)s",
+           logging.ERROR: "%(asctime)s *****%(levelname)s*****: ***[%(module)s:%(funcName)s:%(lineno)s]*** ***%(message)s***",
+           logging.CRITICAL: "%(asctime)s *****%(levelname)s*****: ***[%(module)s:%(funcName)s:%(lineno)s]*** ***%(message)s***"
+         }
 
-  wikilink=wikilink.replace(" ","_")
-  return wikilink
+LOGDATEFMT = '%Y-%m-%d %H:%M:%S'
 
-def dbpedia_link(g,skos):
-  link=None
-  for s, p, o in g:
-    if p == skos.closeMatch:
-      if "dbpedia" in o:
-        link=o.replace("http://it.dbpedia.org/resource/","")
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
 
-  #print link
-  return link
+class Formattatore(logging.Formatter):
+    def format(self, record):
+        self._fmt=LOGFORMAT_FILE[record.levelno]
+        s = logging.Formatter.format(self,record)
+        return s
 
-parser = argparse.ArgumentParser()
-parser.add_argument("tid", type=int, help="term id number")
-args = parser.parse_args()
+# ***** END logging module *****
 
-tid=args.tid
+# ***** START Autosend *****
 
-skosurl="http://thes.bncf.firenze.sbn.it/SKOS.php?id=%d" %tid
+# --- root logger
+rootlogger = logging.getLogger()
+rootlogger.setLevel(logging.DEBUG)
 
-wikilink=get_wikipedia_link(tid)
+lvl_config_logger = logging.INFO
+lvl_config_logger = logging.DEBUG
 
-fsko = tempfile.NamedTemporaryFile()
-urllib.urlretrieve(skosurl, fsko.name)    
+console = logging.StreamHandler()
+console.setLevel(lvl_config_logger)
 
-graph = Graph()
-skos = Namespace('http://www.w3.org/2004/02/skos/core#')
-graph.bind('skos', skos)
+formatter = logging.Formatter(LOGFORMAT_STDOUT[lvl_config_logger])
+console.setFormatter(formatter)
 
-graph.parse(fsko.name)
-fsko.close()
+rootlogger.addHandler(console)
 
-plugin.register(
-    'sparql', rdflib.query.Processor,
-    'rdfextras.sparql.processor', 'Processor')
-plugin.register(
-    'sparql', rdflib.query.Result,
-    'rdfextras.sparql.query', 'SPARQLQueryResult')
+#config_logger = logging.getLogger(APPNAME + '.config')
+#config_logger.debug("%s" %sys.argv)
 
-pred=skos.prefLabel
-#print pred
-qname = get_name(graph)
+#parser = argparse.ArgumentParser()
+#parser.add_argument("tid", type=int, help="term id number")
+#args = parser.parse_args()
 
-print "== PROCESSING: %s" %qname
-print "-> Wikipedia page: %s" %wikilink
+logger = logging.getLogger('sogbot')
+logger.debug("start")
 
-print "\nVoci correlate:"
-qres = graph.query(
-    """SELECT DISTINCT ?a ?b
-       WHERE {
-          ?a skos:related ?b .
-       }""",
-    initNs=dict(
-        skos=Namespace("http://www.w3.org/2004/02/skos/core#")))
+tidlist=[]
+for tid in tidlist:
+  tid=args.tid
 
-for row in qres.result:
-  g = Graph()
-  relurl=row[1]
-  frel = tempfile.NamedTemporaryFile()
-  #print relurl
-  response = urllib.urlretrieve(relurl, frel.name)
-  g.parse(frel.name)
-  frel.close()
-  relwiki=dbpedia_link(g,skos)
-  rname=get_name(g)
-  reltext = "* %s is related to %s" %(qname,rname)
-  if relwiki:
-    relwiki="http://it.wikipedia.org/wiki/"+relwiki
-    reltext = reltext + " - (%s)" %relwiki
+  term=sog.Term(tid)
 
-  print reltext
+  logger.info("== PROCESSING: %s" %term.name)
+  logger.info("-> Wikipedia page: %s" %term.wikilink)
+
+  uitems=term.used_items()
+  logger.info("Sinonimi:")
+  for u in uitems:
+    logger.info("%s, %s" %(u.name, u.wikilink))
+
+  ritems=term.related_items()
+  logger.info("Voci correlate:")
+  for r in ritems:
+    logger.info("%s, %s" %(r.name, r.wikilink))
+
+  nitems=term.narrower_items()
+  logger.info("Narrower:")
+  for n in nitems:
+    logger.info("%s, %s" %(u.name, u.wikilink))
+
+  bitems=term.broader_items()
+  logger.info("Broader:")
+  for b in bitems:
+    logger.info("%s, %s" %(b.name, b.wikilink))
+
+  LinkRetriever()
+
+  tmpl=template.Template(term,uitems,ritems,nitems,bitems)
+  tmpl.login()
+  tmpl.write()
+  tmpl.save()
+  tmpl.logoff()
+
+exit(0)
