@@ -18,14 +18,12 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
-import argparse
-import logging
 from sogbotmod import soggettario as sog
-from sogbotmod import template as template
+from sogbotmod import template
+from sogbotmod import config
 
 # ***** logging module objects and definition *****
 import logging
-from logging import config
 from logging import handlers
 
 LOGFORMAT_STDOUT = { logging.DEBUG: '%(module)s:%(funcName)s:%(lineno)s - %(levelname)-8s: %(message)s',
@@ -76,12 +74,63 @@ rootlogger.addHandler(console)
 #config_logger = logging.getLogger(APPNAME + '.config')
 #config_logger.debug("%s" %sys.argv)
 
-#parser = argparse.ArgumentParser()
-#parser.add_argument("tid", type=int, help="term id number")
-#args = parser.parse_args()
-
 logger = logging.getLogger('sogbot')
 logger.debug("start")
+
+cfgcli = config.parse()
+cfg = config.parseall(dizcli=cfgcli)
+  
+BASE_DIR = SOGBOT['BASE_DIR']
+CURR_DIR = os.path.abspath(os.path.normpath(os.getcwd()))
+verbose = cfgcli['verbose']
+debug = cfgcli['debug']
+
+if verbose or debug:
+  if debug: lvl = logging.DEBUG
+  else: lvl = logging.INFO
+  formatter = logging.Formatter(LOGFORMAT_STDOUT[lvl])
+  console.setFormatter(formatter)
+  console.setLevel(lvl)
+else:
+  h = NullHandler()
+  console.setLevel(logging.WARNING)
+  rootlogger.addHandler(h)
+
+logger.info("BASE_DIR: %s" %BASE_DIR)
+logger.info("Installed: %s" %INSTALLED)
+logger.info("CURR_DIR: %s" %CURR_DIR)
+
+logger.debug("verbose: %s" %verbose)
+logger.debug("debug: %s" %debug)
+
+
+enable_logging= cfg['enable_logging']
+logger.debug("enable_logging: %s" %enable_logging)
+
+logfile_dir = cfg['logfile_dir']
+logfile_name = cfg['logfile_name']
+logfile = os.path.normpath(os.path.join(logfile_dir, logfile_name))
+
+log_when = cfg['log_when']
+log_interval = cfg['log_interval']
+log_backup = cfg['backup_count']
+
+if enable_logging:
+  # --- Abilita il log su file ---
+  logger.debug("logfile: %s" %logfile)
+  
+  #(filename[, when[, interval[, backupCount[, encoding[, delay[, utc]]]]]])
+  ch = handlers.TimedRotatingFileHandler(filename=logfile, when=log_when, interval=log_interval, backupCount=log_backup)
+  
+  ch.setLevel(logging.INFO)
+  formatter = Formattatore(LOGFORMAT_FILE, datefmt=LOGDATEFMT)
+  ch.setFormatter(formatter)
+  rootlogger.addHandler(ch)
+
+logger.debug("cfg: %s" %cfg)
+
+dry_send = cfg['dry_send']
+dry_action = cfg['dry_action']
 
 tidlist=[]
 for tid in tidlist:

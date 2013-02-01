@@ -18,21 +18,20 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
-import logging
-
-logger = logging.getLogger('sogbot.config')
-
-configobj_loaded = None
-from configobj import ConfigObj, ConfigObj, ConfigObjError, flatten_errors
-from validate import Validator
-
-import argparse
-from validate import email_check, readpath_check, writepath_check, smtpserver_check, loglevel_check, hour_check
 
 import os
 import sys
+import argparse
+import logging
+from configobj import ConfigObj, ConfigObj, ConfigObjError, flatten_errors
 
 from sbglobal import SOGBOT
+from sogbotmot import parse as parser
+from sogbotmot import container
+from sbvalidate import email_check, writepath_check, loglevel_check
+from validate import Validator
+
+logger = logging.getLogger('sogbot.config')
 
 # --- custom types ---
 def pos_int(string):
@@ -43,36 +42,15 @@ def pos_int(string):
   return value
 
 # --- custom actions ---
-class readpath_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = readpath_check(values)
-    setattr(namespace, self.dest, values)
-
 class readfile_action(argparse.Action):
   def __call__(self, parser, namespace, values, option_string=None):
     values = readfile_check(values)
-    setattr(namespace, self.dest, values)
-
-class smtpserver_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = smtpserver_check(values)
     setattr(namespace, self.dest, values)
 
 class writepath_action(argparse.Action):
   def __call__(self, parser, namespace, values, option_string=None):
     values = writepath_check(values)
     setattr(namespace, self.dest, values)
-
-class email_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = email_check(values)
-    setattr(namespace, self.dest, values)
-
-class hour_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = hour_check(values)
-    setattr(namespace, self.dest, values)
-
 
 def parsecli(appname, desc, vers, epi):
 
@@ -84,21 +62,15 @@ def parsecli(appname, desc, vers, epi):
 
   parser.add_argument('-v', '--version', action='version', version=VERSIONTEXT)
 
-  subparsers = parser.add_subparsers(dest='command', help='-h per gli aiuti dei sottocomandi')
+  parser.add_argument('-c', '--config-file', type=readfile_action, help='specifica un file di configurazione diverso da quello predefinito')
 
-  # create the parser for the "start" command
-  parser_start = subparsers.add_parser('start', help='sottocomando start')
+  parser.add_argument('-i', '--id-file', type=readfile_action, help='specifica un file di input', dest='tidfile')  
 
-  parser_start.add_argument('-c', '--config-file', type=str, help='specifica un file di configurazione diverso da quello predefinito')
+  parser.add_argument('-t', '--throttle-time', type=pos_int, help='il tempo di attesa (in secondi) tra due controlli', dest='delay_time')
+  parser.add_argument('-v', '--verbose', action='store_true', help="abilita l'output verboso")
+  parser.add_argument('--debug', action='store_true', help="abilita l'output verboso (con messaggi di debug)")
 
-  parser_start.add_argument('-d', '--directory', action=readpath_action, help='la directory in cui cercare i file', dest='lookdir')  
-
-  recur_group = parser_start.add_mutually_exclusive_group() 
-  parser_start.add_argument('-t', '--throttle-time', type=pos_int, help='il tempo di attesa (in secondi) tra due controlli', dest='delay_time')
-  parser_start.add_argument('-v', '--verbose', action='store_true', help="abilita l'output verboso")
-  parser_start.add_argument('--debug', action='store_true', help="abilita l'output verboso")
-
-  log_group = parser_start.add_mutually_exclusive_group()
+  log_group = parser.add_mutually_exclusive_group()
   loggr = log_group.add_argument_group(title='Log', description='opzioni di log.')  
   loggr.add_argument('--log-dir', action=writepath_action, help='la directory dove salvare il log', dest='logfile_dir')
   loggr.add_argument('--log-file', action='store', help='il nome del file di log', dest='logfile_name')
@@ -106,52 +78,28 @@ def parsecli(appname, desc, vers, epi):
   loggr.add_argument('--log-interval', action='store', choices=['S', 's', 'M', 'm', 'H', 'h', 'D', 'd', 'W', 'w', 'midnight'], help="l'indirizzo mail cui spedire il log", dest='log_interval')
   loggr.add_argument('--log-period', type=pos_int, help="l'indirizzo mail cui spedire il log", dest='log_when')
   loggr.add_argument('--log-backup', type=pos_int, help="l'indirizzo mail cui spedire il log", dest='backup_count')
-
-  loggr.add_argument('--log-send-to', action=email_action, help="l'indirizzo mail cui spedire il log", dest='sendlog_to')
-  loggr.add_argument('--log-send-when', action=hour_action, help="l'indirizzo mail cui spedire il log", dest='sendlog_when')
-
   log_group.add_argument('--no-log', action='store_true', help='disabilita il log')
 
-  parser_start.add_argument('--dry-send', action='store_true', help='esegue il programma senza inviare mail')
-  parser_start.add_argument('--dry-action', action='store_true', help="esegue il programma senza applicare l'azione finale")
+  parser.add_argument('--dry', action='store_true', help='esegue il programma senza compiere azioni e senza collegarsi alla rete')
+  parser.add_argument('--dry-wiki', action='store_true', help="esegue il programma senza scrivere su Wikipedia")
   
   args = parser.parse_args()
   #print args
-  
+
   logger.debug("args.__dict__: %s" %args.__dict__)
 
   dizcli=dict([(name, args.__dict__[name]) for name in args.__dict__.keys() if args.__dict__[name] != None])
-  
-  if dizcli['command'] == 'start':
-    if not dizcli['recursive']:
-      del dizcli['recursive']
-     
-    if dizcli['non_recursive']:
-      dizcli['recursive'] = not args.non_recursive  
-    del dizcli['non_recursive']
-  
-    dizcli['enable_logging'] = not args.no_log
-    del dizcli['no_log']
-    
-    dizcli['auth_required'] = not args.no_auth
-    del dizcli['no_auth']
-    
-    if ('sendlog_to' in dizcli.keys()) or ('sendlog_when' in dizcli.keys()):
-      dizcli['enable_mailing'] = True
-  
-    #dizcli['daemonize'] = not args.no_daemon
-    #del dizcli['no_daemon']
-  
+
+  dizcli['enable_logging'] = not args.no_log
+  del dizcli['no_log']
+
   logger.debug("dizcli: %s" %dizcli)
   return dizcli
 
-from sogbotmot import container
-from sogbotmot import parse as parser
-
-def parsestart(dizcli): 
+def parseall(dizcli): 
 
   cont = container.ConfigContainer(dizcli)
-  
+
   spec = SOGBOT['CONFIGSPECPATH']
 
   config = dizcli.pop('config_file')
