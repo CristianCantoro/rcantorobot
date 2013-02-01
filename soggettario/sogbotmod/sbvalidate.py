@@ -72,23 +72,22 @@ def readfile_check(value):
       msg = 'A list was passed when a path with read permission was expected'
       logger.error(msg)
       raise ValidateError(msg)
-      
+
     #print "type: ", type(value)
     #print os.path.exists(value)
-    
+
     logger.debug(value)
     if not os.path.exists(value):
       msg = '"%s" is not a valid path' % value
       raise ValidateError(msg)
-      
+
     elif not os.path.isfile(value):
       msg = '"%s" is not a regular file:' % value
       raise ValidateError(msg)
-      
+
     elif not os.access(value, os.R_OK):
       msg = 'User has not the valid permissions to read: "%s"' % value
       raise ValidateError(msg)
-      
 
     return value
 
@@ -107,5 +106,5 @@ def loglevel_check(value):
       logger.warning(msg)
       raise ValidateError(msg)
     level = LOGLEVELS.get(lower(value), logging.NOTSET)
-    print level
+    #print level
     return level

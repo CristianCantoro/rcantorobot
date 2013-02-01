@@ -62,11 +62,9 @@ def parsecli(appname, desc, vers, epi):
 
   parser.add_argument('--version', action='version', version=VERSIONTEXT)
 
-  parser.add_argument('-c', '--config-file', type=readfile_action, help='specifica un file di configurazione diverso da quello predefinito')
+  parser.add_argument('-c', '--config-file', action=readfile_action, help='specifica un file di configurazione diverso da quello predefinito')
 
-  parser.add_argument('-i', '--id-file', type=readfile_action, help='specifica un file di input', dest='tidfile')  
-
-  parser.add_argument('-t', '--throttle-time', type=pos_int, help='il tempo di attesa (in secondi) tra due controlli', dest='delay_time')
+  parser.add_argument('-t', '--throttle-time', type=pos_int, help='il tempo di attesa (in secondi) tra due controlli', dest='throttle_time')
   parser.add_argument('-v', '--verbose', action='store_true', help="abilita l'output verboso")
   parser.add_argument('--debug', action='store_true', help="abilita l'output verboso (con messaggi di debug)")
 
@@ -82,7 +80,9 @@ def parsecli(appname, desc, vers, epi):
 
   parser.add_argument('--dry', action='store_true', help='esegue il programma senza compiere azioni e senza collegarsi alla rete')
   parser.add_argument('--dry-wiki', action='store_true', help="esegue il programma senza scrivere su Wikipedia")
-  
+
+  parser.add_argument('-i', '--id-file', action=readfile_action, help='specifica un file di input', dest='idlist')  
+
   args = parser.parse_args()
   #print args
 
@@ -107,7 +107,9 @@ def parseall(dizcli):
   #print parserconfig.__name__
   dizconfig = parser.parse(config, spec)
 
-  cont.add_requested('throttle_time')
+  cont.add_requested('idlist')
+
+  cont.add_optional('throttle_time', default=5)
 
   cont.add_optional('verbose', default=False)
 
@@ -127,17 +129,9 @@ def parseall(dizcli):
 
   cont.add_depending('backup_count', depends='enable_logging', value=True)
 
-  cont.add_depending('enable_mailing', depends='enable_logging', value=True)
+  cont.add_optional('dry', default=False)
 
-  cont.add_depending('sendlog_to', depends='enable_mailing', value=True)
-
-  cont.add_depending('sendlog_when', depends='enable_mailing', value=True)
-
-  cont.add_optional('dry_run', default=False)
-
-  cont.add_optional('dry_send', default=False)
-
-  cont.add_optional('dry_action', default=False)
+  cont.add_optional('dry_wiki', default=False)
 
   cont.merge(dizconfig, priority=False)
 

@@ -21,6 +21,9 @@
 from sogbotmod import sbsoggettario as sog
 from sogbotmod import sbtemplate as template
 from sogbotmod import sbconfig as config
+from sogbotmod.sbglobal import SOGBOT
+
+import os
 
 # ***** logging module objects and definition *****
 import logging
@@ -61,7 +64,7 @@ rootlogger = logging.getLogger()
 rootlogger.setLevel(logging.DEBUG)
 
 lvl_config_logger = logging.INFO
-lvl_config_logger = logging.DEBUG
+#lvl_config_logger = logging.DEBUG
 
 console = logging.StreamHandler()
 console.setLevel(lvl_config_logger)
@@ -71,14 +74,9 @@ console.setFormatter(formatter)
 
 rootlogger.addHandler(console)
 
-#config_logger = logging.getLogger(APPNAME + '.config')
-#config_logger.debug("%s" %sys.argv)
-
 logger = logging.getLogger('sogbot')
-logger.debug("start")
 
 cfgcli = config.parse()
-cfg = config.parseall(dizcli=cfgcli)
   
 BASE_DIR = SOGBOT['BASE_DIR']
 CURR_DIR = os.path.abspath(os.path.normpath(os.getcwd()))
@@ -97,13 +95,12 @@ else:
   rootlogger.addHandler(h)
 
 logger.info("BASE_DIR: %s" %BASE_DIR)
-logger.info("Installed: %s" %INSTALLED)
 logger.info("CURR_DIR: %s" %CURR_DIR)
 
 logger.debug("verbose: %s" %verbose)
 logger.debug("debug: %s" %debug)
 
-
+cfg = config.parseall(dizcli=cfgcli)
 enable_logging= cfg['enable_logging']
 logger.debug("enable_logging: %s" %enable_logging)
 
@@ -115,22 +112,23 @@ log_when = cfg['log_when']
 log_interval = cfg['log_interval']
 log_backup = cfg['backup_count']
 
+# --- Abilita il log su file ---
 if enable_logging:
-  # --- Abilita il log su file ---
   logger.debug("logfile: %s" %logfile)
-  
-  #(filename[, when[, interval[, backupCount[, encoding[, delay[, utc]]]]]])
   ch = handlers.TimedRotatingFileHandler(filename=logfile, when=log_when, interval=log_interval, backupCount=log_backup)
-  
-  ch.setLevel(logging.INFO)
+
+  if debug: lvl = logging.DEBUG
+  else: lvl = logging.INFO
+
+  ch.setLevel(lvl)
   formatter = Formattatore(LOGFORMAT_FILE, datefmt=LOGDATEFMT)
   ch.setFormatter(formatter)
   rootlogger.addHandler(ch)
 
 logger.debug("cfg: %s" %cfg)
 
-dry_send = cfg['dry_send']
-dry_action = cfg['dry_action']
+dry = cfg['dry']
+dry_wiki = cfg['dry_wiki']
 
 tidlist=[]
 for tid in tidlist:
