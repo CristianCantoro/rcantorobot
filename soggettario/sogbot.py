@@ -18,9 +18,9 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
-from sogbotmod import soggettario as sog
-from sogbotmod import template
-from sogbotmod import config
+from sogbotmod import sbsoggettario as sog
+from sogbotmod import sbtemplate as template
+from sogbotmod import sbconfig as config
 
 # ***** logging module objects and definition *****
 import logging

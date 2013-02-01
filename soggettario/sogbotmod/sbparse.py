@@ -21,7 +21,7 @@
 from configobj import ConfigObj, ConfigObj, ConfigObjError, flatten_errors
 from validate import Validator, ValidateError
 
-from ASvalidate import email_check, readpath_check, writepath_check, smtpserver_check, loglevel_check, readfile_check, hour_check
+from sbvalidate import writepath_check, readfile_check, loglevel_check
 
 import logging
 
@@ -93,19 +93,11 @@ def _update_dict(section, key, diz):
   #print "update diz[%s]: %s" %(key, val)
 
 VALIDATEDICT = {
-      'email': email_check,
-      
-      'readpath' : readpath_check,
-      
       'writepath' : writepath_check,
-      
-      'smtpserver' : smtpserver_check,
       
       'loglevel' : loglevel_check,
       
       'readfile' : readfile_check,
-      
-      'hour' : hour_check
     }
 
 

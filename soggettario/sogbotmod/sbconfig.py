@@ -26,9 +26,9 @@ import logging
 from configobj import ConfigObj, ConfigObj, ConfigObjError, flatten_errors
 
 from sbglobal import SOGBOT
-from sogbotmot import parse as parser
-from sogbotmot import container
-from sbvalidate import email_check, writepath_check, loglevel_check
+from sogbotmod import sbparse as parser
+from sogbotmod import sbcontainer as container
+from sbvalidate import writepath_check, readfile_check, loglevel_check
 from validate import Validator
 
 logger = logging.getLogger('sogbot.config')
@@ -60,7 +60,7 @@ def parsecli(appname, desc, vers, epi):
 
   VERSIONTEXT='***** %(prog)s VERSION: ' + ' ' + vers + ' ***** - ' + epi
 
-  parser.add_argument('-v', '--version', action='version', version=VERSIONTEXT)
+  parser.add_argument('--version', action='version', version=VERSIONTEXT)
 
   parser.add_argument('-c', '--config-file', type=readfile_action, help='specifica un file di configurazione diverso da quello predefinito')
 
@@ -100,7 +100,7 @@ def parseall(dizcli):
 
   cont = container.ConfigContainer(dizcli)
 
-  spec = SOGBOT['CONFIGSPECPATH']
+  spec = SOGBOT['CONFIGSPECFILE']
 
   config = dizcli.pop('config_file')
 
@@ -154,13 +154,10 @@ def parse():
   vers = SOGBOT['VERSION']
   epi = SOGBOT['EPILOG']
 
-  CONFIGNAME = SOGBOT['CONFIGNAME']
-
   dizcli = parsecli(appname, desc, vers, epi)
 
   if not ('config_file' in dizcli.keys()):
-    base_dir = SOGBOT['BASE_DIR']
-    config = os.path.join(SOGBOT['CONFIG_DIR'], SOGBOT['CONFIGNAME'])
+    config = SOGBOT['CONFIGFILE']
     dizcli['config_file'] = config
 
   logger.debug("dizcli: %s" %dizcli)

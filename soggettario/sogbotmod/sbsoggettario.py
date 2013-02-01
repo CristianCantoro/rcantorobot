@@ -25,7 +25,7 @@ import lxml
 from lxml.html import fromstring
 import rdflib
 
-from sogbotmod import devel
+from sogbotmod import sbdevel as devel
 
 SKOSNS = rdflib.Namespace('http://www.w3.org/2004/02/skos/core#')
 THSKOSBASEURL = "http://thes.bncf.firenze.sbn.it/SKOS.php?id=%d"

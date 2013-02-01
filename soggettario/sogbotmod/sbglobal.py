@@ -22,7 +22,7 @@ import os
 import sys
 import logging
 
-from sogbotmod import tuct
+from sogbotmod import sbtuct as tuct
 
 logger = logging.getLogger('sogbot.sbglobal')
 
@@ -38,6 +38,18 @@ CURR_DIR = os.path.abspath(os.path.normpath(os.getcwd()))
 logger.debug("BASE_DIR: %s" %BASE_DIR)
 logger.debug("CURR_DIR: %s" %CURR_DIR)
 
+CONFIGSPECNAME = 'sogbot.spec.cfg'
+
+CONFIGSPEC_DIR = os.path.join(BASE_DIR,'config/spec/')
+
+CONFIGSPECFILE = os.path.join(CONFIGSPEC_DIR,CONFIGSPECNAME)
+
+CONFIG_DIR = os.path.join(BASE_DIR,'config/')
+
+CONFIGNAME = 'sogbot.cfg'
+
+CONFIGFILE = os.path.join(CONFIG_DIR,CONFIGNAME)
+
 DESCRIPTION="""sogbot description"""
 
 EPILOG = """Copyright 2013 - Cristian Consonni.
@@ -51,6 +63,12 @@ SOGBOT = tuct.Tuct(
         VERSION = VERSION,
         
         BASE_DIR = BASE_DIR,
+        
+        CONFIGNAME = CONFIGNAME,
+        
+        CONFIGFILE = CONFIGFILE,
+        
+        CONFIGSPECFILE = CONFIGSPECFILE,
         
         DESCRIPTION = DESCRIPTION,
 
