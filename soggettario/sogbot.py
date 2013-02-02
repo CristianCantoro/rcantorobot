@@ -127,8 +127,16 @@ if enable_logging:
 
 logger.debug("cfg: %s" %cfg)
 
+
+idlist = cfg['idlist']
 dry = cfg['dry']
 dry_wiki = cfg['dry_wiki']
+
+tidfile = open(idlist)
+tidlist = tidfile.readlines()
+
+tidlist = [int(n.strip('\n')) for n in tidlist]
+logger.debug("tidlist: %s" %tidlist)
 
 tidlist=[]
 for tid in tidlist:
