@@ -29,22 +29,31 @@
 # If not, see <http://www.gnu.org/licenses/>.
 ##########################################################################
 
+# logging module
+import logging
+
 # pywikipedia framework imports
 import pywikibot
 from pywikibot import pagegenerators
 from pywikibot import i18n
 
-# logging module
-import logging
-
-# MediaWiki search module
-import mwsearch
+import sbmwsearch
+from sbbot import SogBot
 
 # This is required for the text that is shown when you run this script
 # with the parameter -help.
 docuReplacements = {
     '&params;': pagegenerators.parameterHelp
 }
+
+
+class Error(Exception):
+  """Base class for exceptions in this module."""
+  pass
+
+class LinkRetriever(object):
+  def __init__(self):
+    pass
 
 class BasicBot:
     # Edit summary message that should be used is placed on /i18n subdirectory.

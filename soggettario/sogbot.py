@@ -18,12 +18,12 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
+import os
+
 from sogbotmod import sbsoggettario as sog
 from sogbotmod import sbtemplate as template
 from sogbotmod import sbconfig as config
 from sogbotmod.sbglobal import SOGBOT
-
-import os
 
 # ***** logging module objects and definition *****
 import logging
@@ -57,7 +57,10 @@ class Formattatore(logging.Formatter):
 
 # ***** END logging module *****
 
-# ***** START Autosend *****
+# ***** START sogbot *****
+
+from sogbotmod.sblinkretriever import LinkRetriever
+from sogbotmod.sbtemplate import Template
 
 # --- root logger
 rootlogger = logging.getLogger()
@@ -84,8 +87,10 @@ verbose = cfgcli['verbose']
 debug = cfgcli['debug']
 
 if verbose or debug:
-  if debug: lvl = logging.DEBUG
-  else: lvl = logging.INFO
+  if debug: 
+    lvl = logging.DEBUG
+  else: 
+    lvl = logging.INFO
   formatter = logging.Formatter(LOGFORMAT_STDOUT[lvl])
   console.setFormatter(formatter)
   console.setLevel(lvl)
@@ -127,7 +132,6 @@ if enable_logging:
 
 logger.debug("cfg: %s" %cfg)
 
-
 idlist = cfg['idlist']
 dry = cfg['dry']
 dry_wiki = cfg['dry_wiki']
@@ -138,41 +142,47 @@ tidlist = tidfile.readlines()
 tidlist = [int(n.strip('\n')) for n in tidlist]
 logger.debug("tidlist: %s" %tidlist)
 
-tidlist=[]
+throttle_time = cfg['throttle_time']
+logger.debug("throttle_time: %s", throttle_time)
+
+#tidlist=[]
+logger.info("==========\n\n")
 for tid in tidlist:
-  tid=args.tid
 
   term=sog.Term(tid)
 
-  logger.info("== PROCESSING: %s" %term.name)
+  logger.info("== PROCESSING: %s ==" %term.name)
   logger.info("-> Wikipedia page: %s" %term.wikilink)
 
   uitems=term.used_items()
   logger.info("Sinonimi:")
   for u in uitems:
-    logger.info("%s, %s" %(u.name, u.wikilink))
+    logger.info("* %s, %s, %s" %(u.name, u.wikilink, u.tid))
 
   ritems=term.related_items()
   logger.info("Voci correlate:")
   for r in ritems:
-    logger.info("%s, %s" %(r.name, r.wikilink))
+    logger.info("* %s, %s, %s" %(r.name, r.wikilink, r.tid))
 
   nitems=term.narrower_items()
   logger.info("Narrower:")
   for n in nitems:
-    logger.info("%s, %s" %(u.name, u.wikilink))
+    logger.info("* %s, %s, %s" %(n.name, n.wikilink, n.tid))
 
   bitems=term.broader_items()
   logger.info("Broader:")
   for b in bitems:
-    logger.info("%s, %s" %(b.name, b.wikilink))
+    logger.info("* %s, %s, %s" %(b.name, b.wikilink, b.tid))
 
   LinkRetriever()
 
-  tmpl=template.Template(term,uitems,ritems,nitems,bitems)
+  tmpl=Template(term,uitems,ritems,nitems,bitems)
   tmpl.login()
   tmpl.write()
   tmpl.save()
   tmpl.logoff()
 
+  logger.info("==========\n")
+
+logger.info("Everything done! Great job! Exiting")
 exit(0)

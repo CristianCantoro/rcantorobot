@@ -17,41 +17,35 @@
 # along with this program (see COPYING).
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
-import logging
 
-logger = logging.getLogger('sogbotmod.template')
+import urllib
 
-from sbbot import SogBot
+class Error(Exception):
+  """Base class for exceptions in this module."""
+  pass
 
-class Template(object):
+class PageGetter(object):
 
-  def __init__(self,term,uitems=None,ritems=None,nitems=None,bitems=None,dry=False):
-    global site
-    dry = True
+  def __init__(self, url, fname=None, dry=False, local=None):
+    self._url = url
 
-    self.term=term
-    self.uitems=uitems
-    self.ritems=ritems
-    self.nitems=nitems
-    self.bitems=bitems
-    self.dry=dry
-    self.bot=SogBot([],self.dry)
+    if fname is None:
+      self._fname = something
+    else:
+      self._fname = fname
 
-  def login(self):
-    site = pywikibot.Site()
-    site.login()
+    urllib.urlretrieve(url, self.fname)
+    self._hasPage = True
 
-  def write(self):
-    self.bot.run()
+  def get_fname():
+    return self._fname
+  
+  def get_url():
+    return self.url
 
-  def save(self):
-    if not self.dry:
-      pass
-    logger.debug("Saving")
-
-  def logoff(self):
-    pywikibot.stopme()
+  def has_page():
+    return self._hasPage
 
 # ----- main -----
 if __name__ == '__main__':
-  print "Template"
+  pass
