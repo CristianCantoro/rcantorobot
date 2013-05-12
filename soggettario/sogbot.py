@@ -18,13 +18,6 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 
-import os
-
-from sogbotmod import sbsoggettario as sog
-from sogbotmod import sbtemplate as template
-from sogbotmod import sbconfig as config
-from sogbotmod.sbglobal import SOGBOT
-
 # ***** logging module objects and definition *****
 import logging
 from logging import handlers
@@ -46,24 +39,30 @@ LOGFORMAT_FILE = { logging.DEBUG: "%(module)s:%(funcName)s:%(lineno)s - ***%(lev
 LOGDATEFMT = '%Y-%m-%d %H:%M:%S'
 
 class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
+   def emit(self, record):
+      pass
 
 class Formattatore(logging.Formatter):
-    def format(self, record):
-        self._fmt=LOGFORMAT_FILE[record.levelno]
-        s = logging.Formatter.format(self,record)
-        return s
+   def format(self, record):
+      self._fmt=LOGFORMAT_FILE[record.levelno]
+      s = logging.Formatter.format(self,record)
+      return s
 
 # ***** END logging module *****
 
-# ***** START sogbot *****
+# ***** system imports *****
+import os
+import time
 
+# ***** START sogbot *****
+from sogbotmod import sbsoggettario as sog
+from sogbotmod import sbconfig as config
+from sogbotmod.sbglobal import SOGBOT
 from sogbotmod.sblinkretriever import LinkRetriever
 from sogbotmod.sbtemplate import Template
 
 # --- root logger
-rootlogger = logging.getLogger()
+rootlogger = logging.getLogger('sogbot')
 rootlogger.setLevel(logging.DEBUG)
 
 lvl_config_logger = logging.INFO
@@ -77,7 +76,7 @@ console.setFormatter(formatter)
 
 rootlogger.addHandler(console)
 
-logger = logging.getLogger('sogbot')
+logger = logging.getLogger('sogbot.main')
 
 cfgcli = config.parse()
   
@@ -87,17 +86,17 @@ verbose = cfgcli['verbose']
 debug = cfgcli['debug']
 
 if verbose or debug:
-  if debug: 
-    lvl = logging.DEBUG
-  else: 
-    lvl = logging.INFO
-  formatter = logging.Formatter(LOGFORMAT_STDOUT[lvl])
-  console.setFormatter(formatter)
-  console.setLevel(lvl)
+   if debug: 
+      lvl = logging.DEBUG
+   else: 
+      lvl = logging.INFO
+   formatter = logging.Formatter(LOGFORMAT_STDOUT[lvl])
+   console.setFormatter(formatter)
+   console.setLevel(lvl)
 else:
-  h = NullHandler()
-  console.setLevel(logging.WARNING)
-  rootlogger.addHandler(h)
+   h = NullHandler()
+   console.setLevel(logging.WARNING)
+   rootlogger.addHandler(h)
 
 logger.info("BASE_DIR: %s" %BASE_DIR)
 logger.info("CURR_DIR: %s" %CURR_DIR)
@@ -119,16 +118,16 @@ log_backup = cfg['backup_count']
 
 # --- Abilita il log su file ---
 if enable_logging:
-  logger.debug("logfile: %s" %logfile)
-  ch = handlers.TimedRotatingFileHandler(filename=logfile, when=log_when, interval=log_interval, backupCount=log_backup)
+   logger.debug("logfile: %s" %logfile)
+   ch = handlers.TimedRotatingFileHandler(filename=logfile, when=log_when, interval=log_interval, backupCount=log_backup)
 
-  if debug: lvl = logging.DEBUG
-  else: lvl = logging.INFO
+   if debug: lvl = logging.DEBUG
+   else: lvl = logging.INFO
 
-  ch.setLevel(lvl)
-  formatter = Formattatore(LOGFORMAT_FILE, datefmt=LOGDATEFMT)
-  ch.setFormatter(formatter)
-  rootlogger.addHandler(ch)
+   ch.setLevel(lvl)
+   formatter = Formattatore(LOGFORMAT_FILE, datefmt=LOGDATEFMT)
+   ch.setFormatter(formatter)
+   rootlogger.addHandler(ch)
 
 logger.debug("cfg: %s" %cfg)
 
@@ -145,44 +144,55 @@ logger.debug("tidlist: %s" %tidlist)
 throttle_time = cfg['throttle_time']
 logger.debug("throttle_time: %s", throttle_time)
 
+donetid = []
+
 #tidlist=[]
 logger.info("==========\n\n")
 for tid in tidlist:
 
-  term=sog.Term(tid)
+   if tid in donetid:
+      continue
 
-  logger.info("== PROCESSING: %s ==" %term.name)
-  logger.info("-> Wikipedia page: %s" %term.wikilink)
+   term=sog.Term(tid)
 
-  uitems=term.used_items()
-  logger.info("Sinonimi:")
-  for u in uitems:
-    logger.info("* %s, %s, %s" %(u.name, u.wikilink, u.tid))
+   logger.info("== PROCESSING: %s ==" %term.name)
+   logger.info("-> Wikipedia page: %s" %term.wikilink)
 
-  ritems=term.related_items()
-  logger.info("Voci correlate:")
-  for r in ritems:
-    logger.info("* %s, %s, %s" %(r.name, r.wikilink, r.tid))
+   uitems=term.used_items()
+   logger.info("Sinonimi:")
+   for u in uitems:
+      logger.info("* %s, %s, %s" %(u.name, u.wikilink, u.tid))
 
-  nitems=term.narrower_items()
-  logger.info("Narrower:")
-  for n in nitems:
-    logger.info("* %s, %s, %s" %(n.name, n.wikilink, n.tid))
+   ritems=term.related_items()
+   logger.info("Voci correlate:")
+   for r in ritems:
+      logger.info("* %s, %s, %s" %(r.name, r.wikilink, r.tid))
 
-  bitems=term.broader_items()
-  logger.info("Broader:")
-  for b in bitems:
-    logger.info("* %s, %s, %s" %(b.name, b.wikilink, b.tid))
+   nitems=term.narrower_items()
+   logger.info("Narrower:")
+   for n in nitems:
+      logger.info("* %s, %s, %s" %(n.name, n.wikilink, n.tid))
 
-  LinkRetriever()
+   bitems=term.broader_items()
+   logger.info("Broader:")
+   for b in bitems:
+      logger.info("* %s, %s, %s" %(b.name, b.wikilink, b.tid))
 
-  tmpl=Template(term,uitems,ritems,nitems,bitems)
-  tmpl.login()
-  tmpl.write()
-  tmpl.save()
-  tmpl.logoff()
+   LinkRetriever()
 
-  logger.info("==========\n")
+   tmpl=Template(term,uitems,ritems,nitems,bitems)
+   try:
+      tmpl.login()
+      tmpl.write()
+      tmpl.save()
+      tmpl.logoff()
+   except Exception as e:
+      logger.error("Term %s raised exception: %s" %(term.name,e))
+   finally:
+      donetid.append(tid)
+
+   logger.info("==========\n")
+   time.sleep(throttle_time)
 
 logger.info("Everything done! Great job! Exiting")
 exit(0)

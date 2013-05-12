@@ -22,10 +22,9 @@ import logging
 
 logger = logging.getLogger('sogbotmod.sbsoggettario')
 
-import time
+import argparse
 import tempfile
 import urllib
-import lxml
 from lxml.html import fromstring
 import rdflib
 from rdflib import Graph, Literal, Namespace, RDF, URIRef, plugin
@@ -62,165 +61,164 @@ QUERIES = {'broader': """SELECT DISTINCT ?a ?b
 
 
 class Error(Exception):
-  """Base class for exceptions in this module."""
-  pass
+   """Base class for exceptions in this module."""
+   pass
 
 class SkosGraph(rdflib.Graph):
 
-  def __init__(self, tid):
-    super(SkosGraph, self).__init__()
-    self.tid = tid
+   def __init__(self, tid):
+      super(SkosGraph, self).__init__()
+      self.tid = tid
 
-    fsko = tempfile.NamedTemporaryFile()
-    skosurl=THSKOSBASEURL %tid
-    urllib.urlretrieve(skosurl, fsko.name)
+      fsko = tempfile.NamedTemporaryFile()
+      skosurl=THSKOSBASEURL %tid
+      urllib.urlretrieve(skosurl, fsko.name)
 
-    self.bind('skos', SKOSNS)
-    self.parse(fsko.name)
-    fsko.close()
+      self.bind('skos', SKOSNS)
+      self.parse(fsko.name)
+      fsko.close()
 
 class Term(object):
 
-  def __init__(self, term):
+   def __init__(self, term):
 
-    if isinstance(term,int):
-      self.tid = term
-      self.purl = PURLBASEURL %self.tid
-    elif isinstance(term,rdflib.term.URIRef):
-      self.purl = str(term)
-      self.tid=int(self.purl.split('/')[-1])
+      if isinstance(term,int):
+         self.tid = term
+         self.purl = PURLBASEURL %self.tid
+      elif isinstance(term,rdflib.term.URIRef):
+         self.purl = str(term)
+         self.tid=int(self.purl.split('/')[-1])
 
-    self.graph = SkosGraph(self.tid)
-    self.termpage = self.get_termpage()
-    self.name = self.get_name()
-    self.dblink = self.get_dblink()
-    self.wikilink = self.get_wikilink()
-    self._registeredPlugin=False
+      self.graph = SkosGraph(self.tid)
+      self.termpage = self.get_termpage()
+      self.name = self.get_name()
+      self.dblink = self.get_dblink()
+      self.wikilink = self.get_wikilink()
+      self._registeredPlugin=False
 
-  def get_name(self):
-    qname = None
-    pred=SKOSNS.prefLabel
+   def get_name(self):
+      qname = None
+      pred=SKOSNS.prefLabel
 
-    for s, p, o in self.graph:
-      if p==pred:
-        qname=o
+      for s, p, o in self.graph:
+         if p==pred:
+            qname=o
 
-    self.name=qname
-    return qname
+      self.name=qname
+      return qname
 
-  def get_dblink(self):
-    link = None
-    pred = SKOSNS.closeMatch
+   def get_dblink(self):
+      link = None
+      pred = SKOSNS.closeMatch
 
-    for s, p, o in self.graph:
-      if p == pred:
-        if DBPEDIAURL in o:
-          resurl="%s/resource/" %DBPEDIAURL
-          link=o.replace(resurl,'')
+      for s, p, o in self.graph:
+         if p == pred:
+            if DBPEDIAURL in o:
+               resurl="%s/resource/" %DBPEDIAURL
+               link=o.replace(resurl,'')
 
-    self.dblink=link
-    return link
+      self.dblink=link
+      return link
 
-  def get_termpage(self):
-    thesurl=THTERMBASEURL %self.tid
-    fter = urllib.urlopen(thesurl)
-    ster = fter.read()
-    fter.close()
-    self.termpage=ster
-    return ster
+   def get_termpage(self):
+      thesurl=THTERMBASEURL %self.tid
+      fter = urllib.urlopen(thesurl)
+      ster = fter.read()
+      fter.close()
+      self.termpage=ster
+      return ster
 
-  def get_wikilink(self):
+   def get_wikilink(self):
+      if self.termpage is None:
+         self.get_termpage()
 
-    if self.termpage is None:
-      self.get_termpage()
+      html = fromstring(self.termpage)
+      links = html.xpath('//a/@href')
+      wikilinklist=[l for l in links if "it.wikipedia.org" in l]
+      wikilink=None
+      if len(wikilinklist) > 0:
+         wikilink=wikilinklist[0].replace(" ","_")
 
-    html = fromstring(self.termpage)
-    links = html.xpath('//a/@href')
-    wikilinklist=[l for l in links if "it.wikipedia.org" in l]
-    wikilink=None
-    if len(wikilinklist) > 0:
-      wikilink=wikilinklist[0].replace(" ","_")
+      return wikilink
 
-    return wikilink
+   def _register_plugin(self):
+      rdflib.plugin.register(
+                             'sparql', rdflib.query.Processor,
+                             'rdfextras.sparql.processor', 'Processor')
 
-  def _register_plugin(self):
-    rdflib.plugin.register(
-    'sparql', rdflib.query.Processor,
-    'rdfextras.sparql.processor', 'Processor')
+      rdflib.plugin.register(
+                             'sparql', rdflib.query.Result,
+                             'rdfextras.sparql.query', 'SPARQLQueryResult')
 
-    rdflib.plugin.register(
-    'sparql', rdflib.query.Result,
-    'rdfextras.sparql.query', 'SPARQLQueryResult')
+      self._registeredPlugin=True
 
-    self._registeredPlugin=True
+   def _skos_query(self,query):
+      if not self._registeredPlugin:
+         self._register_plugin()
 
-  def _skos_query(self,query):
-    if not self._registeredPlugin:
-      self._register_plugin()
+      qres = self.graph.query(query,initNs=dict(skos=SKOSNS))
+      return qres
 
-    qres = self.graph.query(query,initNs=dict(skos=SKOSNS))
-    return qres
+   def has_dblink(self):
+      return self.dblink is None
 
-  def has_dblink(self):
-    return self.dblink is None
+   def has_wikilink(self):
+      return self.wikilink is None
 
-  def has_wikilink(self):
-    return self.wikilink is None
+   def used_items(self):
+      logger.debug('USED')
+      qres = self._skos_query(QUERIES['used'])
+      logger.debug('query results list: %s' %qres.result)
+      items=list()
+      for row in qres.result:
+         items.append(Term(row[1]))
+      return items
 
-  def used_items(self):
-    logger.debug('USED')
-    qres = self._skos_query(QUERIES['used'])
-    logger.debug('query results list: %s' %qres.result)
-    items=list()
-    for row in qres.result:
-      items.append(Term(row[1]))
-    return items
+   def related_items(self):
+      logger.debug('RELATED')
+      qres = self._skos_query(QUERIES['related'])
+      logger.debug('query results list: %s' %qres.result)
+      items=list()
+      for row in qres.result:
+         items.append(Term(row[1]))
+      return items
 
-  def related_items(self):
-    logger.debug('RELATED')
-    qres = self._skos_query(QUERIES['related'])
-    logger.debug('query results list: %s' %qres.result)
-    items=list()
-    for row in qres.result:
-      items.append(Term(row[1]))
-    return items
+   def narrower_items(self):
+      logger.debug('NARROWER')
+      qres = self._skos_query(QUERIES['narrower'])
+      logger.debug('query results list: %s' %qres.result)
+      items=list()
+      for row in qres.result:
+         items.append(Term(row[1]))
+      return items
 
-  def narrower_items(self):
-    logger.debug('NARROWER')
-    qres = self._skos_query(QUERIES['narrower'])
-    logger.debug('query results list: %s' %qres.result)
-    items=list()
-    for row in qres.result:
-      items.append(Term(row[1]))
-    return items
-
-  def broader_items(self):
-    logger.debug('BROADER')
-    qres = self._skos_query(QUERIES['broader'])
-    logger.debug('query results list: %s' %qres.result)
-    items=list()
-    for row in qres.result:
-      items.append(Term(row[1]))
-    return items
+   def broader_items(self):
+      logger.debug('BROADER')
+      qres = self._skos_query(QUERIES['broader'])
+      logger.debug('query results list: %s' %qres.result)
+      items=list()
+      for row in qres.result:
+         items.append(Term(row[1]))
+      return items
 
 # ----- main -----
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
-  parser.add_argument("tid", type=int, help="term id number")
-  args = parser.parse_args()
+   parser = argparse.ArgumentParser()
+   parser.add_argument("tid", type=int, help="term id number")
+   args = parser.parse_args()
 
-  tid=args.tid
+   tid=args.tid
 
-  #qname = get_name(graph)
-  #wikilink=get_wikipedia_link(tid)
-  print "== PROCESSING: %s" %qname
-  print "-> Wikipedia page: %s" %wikilink
+   #qname = get_name(graph)
+   #wikilink=get_wikipedia_link(tid)
+   #print "== PROCESSING: %s" %qname
+   #print "-> Wikipedia page: %s" %wikilink
 
-  print "\nVoci correlate:"  
+   print "\nVoci correlate:"  
 
-  wikilink=get_wikipedia_link(tid)
+   #wikilink=get_wikipedia_link(tid)
 
-  thesurl=THTERMBASEURL %self.tid
-  fter = urllib.urlopen(thesurl)
-  ster = fter.read()
-  fter.close()
+   #thesurl=THTERMBASEURL %self.tid
+   #fter = urllib.urlopen(thesurl)
+   #ster = fter.read()
+   #fter.close()

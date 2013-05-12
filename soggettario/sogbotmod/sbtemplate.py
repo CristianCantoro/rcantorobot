@@ -21,37 +21,48 @@ import logging
 
 logger = logging.getLogger('sogbotmod.template')
 
+import pywikibot
 from sbbot import SogBot
 
-class Template(object):
+class TemplateAdder(SogBot):
 
-  def __init__(self,term,uitems=None,ritems=None,nitems=None,bitems=None,dry=False):
-    global site
-    dry = True
+   def __init__(self,term,uitems=None,ritems=None,nitems=None,bitems=None,dry=False,manual=False):
+      dry = True
+      manual = True
 
-    self.term=term
-    self.uitems=uitems
-    self.ritems=ritems
-    self.nitems=nitems
-    self.bitems=bitems
-    self.dry=dry
-    self.bot=SogBot([],self.dry)
+      self.term = term
+      self.uitems = uitems
+      self.ritems = ritems
+      self.nitems = nitems
+      self.bitems = bitems
+      self.dry = dry
+      self.manual = manual
+      self.site = pywikibot.Site()
+      super(TemplateAdder, self).__init__(self.term,self.dry,self.site)
+      
 
-  def login(self):
-    site = pywikibot.Site()
-    site.login()
+   def login(self):
+      self.site.login()
 
-  def write(self):
-    self.bot.run()
+   def run(self):
+      for page in self.generator:
+         self.treat(page)
 
-  def save(self):
-    if not self.dry:
+   def treat(self):
       pass
-    logger.debug("Saving")
 
-  def logoff(self):
-    pywikibot.stopme()
+   def save(self):
+      saveres=False
+      
+      if not self.dry:
+         saveres=super(TemplateAdder, self).save()
+         logger.debug("Saving template to: %s" %self.term.name)
+      
+      return saveres
+
+   def logoff(self):
+      pywikibot.stopme()
 
 # ----- main -----
 if __name__ == '__main__':
-  print "Template"
+   print "Template"
