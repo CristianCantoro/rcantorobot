@@ -27,13 +27,7 @@ import tempfile
 import urllib
 from lxml.html import fromstring
 import rdflib
-from rdflib import Graph, Literal, Namespace, RDF, URIRef, plugin
-
-import sbdevel as devel
-
-
-import inspect
-
+from rdflib import Namespace
 
 SKOSNS = Namespace('http://www.w3.org/2004/02/skos/core#')
 THSKOSBASEURL = "http://thes.bncf.firenze.sbn.it/SKOS.php?id=%d"
@@ -100,7 +94,7 @@ class Term(object):
       qname = None
       pred=SKOSNS.prefLabel
 
-      for s, p, o in self.graph:
+      for s,p,o in self.graph:
          if p==pred:
             qname=o
 
@@ -111,7 +105,7 @@ class Term(object):
       link = None
       pred = SKOSNS.closeMatch
 
-      for s, p, o in self.graph:
+      for s,p,o in self.graph:
          if p == pred:
             if DBPEDIAURL in o:
                resurl="%s/resource/" %DBPEDIAURL

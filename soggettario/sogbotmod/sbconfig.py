@@ -19,190 +19,295 @@
 #########################################################################
 
 
-import os
-import sys
 import argparse
 import logging
-from configobj import ConfigObj, ConfigObj, ConfigObjError, flatten_errors
 
 from sbglobal import SOGBOT
 from sogbotmod import sbparse as parser
 from sogbotmod import sbcontainer as container
-from sbvalidate import writepath_check, readfile_check, loglevel_check
-from validate import Validator
+from sbvalidate import writepath_check, readfile_check
 
 logger = logging.getLogger('sogbot.config')
 
 # --- custom types ---
 def pos_int(string):
-  value = int(string)
-  if value < 0:
-    msg = "%r must be a positive integer" % string
-    raise argparse.ArgumentTypeError(msg)
-  return value
+   value = int(string)
+   if value < 0:
+      msg = "%r must be a positive integer" % string
+      raise argparse.ArgumentTypeError(msg)
+   return value
 
 # --- custom actions ---
 class readfile_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = readfile_check(values)
-    setattr(namespace, self.dest, values)
+   def __call__(self, parser, namespace, values, option_string=None):
+      values = readfile_check(values)
+      setattr(namespace, self.dest, values)
 
 class writepath_action(argparse.Action):
-  def __call__(self, parser, namespace, values, option_string=None):
-    values = writepath_check(values)
-    setattr(namespace, self.dest, values)
+   def __call__(self, parser, namespace, values, option_string=None):
+      values = writepath_check(values)
+      setattr(namespace, self.dest, values)
 
 def parsecli(appname, desc, vers, epi):
 
-  #logger.debug("argv: %s %s %s %s" %(appname, desc, vers, epi))
+   #logger.debug("argv: %s %s %s %s" %(appname, desc, vers, epi))
+   parser = argparse.ArgumentParser(
+                     description=desc, 
+                     prog=appname, 
+                     epilog=epi, 
+                     formatter_class=argparse.RawDescriptionHelpFormatter
+                    )
 
-  parser = argparse.ArgumentParser(description=desc, prog=appname, epilog=epi, formatter_class=argparse.RawDescriptionHelpFormatter)
+   VERSIONTEXT='***** %(prog)s VERSION: ' + ' ' + vers + ' ***** - ' + epi
 
-  VERSIONTEXT='***** %(prog)s VERSION: ' + ' ' + vers + ' ***** - ' + epi
+   parser.add_argument(
+                       '-i',
+                       '--id-file',
+                       action=readfile_action,
+                       help='specifica un file di input dei termini',
+                       dest='idlist'
+                      )
+   
+   parser.add_argument(
+                       '-d',
+                       '--done-file',
+                       action=readfile_action,
+                       help='file di input dei termini già elaborati',
+                       dest='donelist'
+                      )
 
-  parser.add_argument('--version', action='version', version=VERSIONTEXT)
+   parser.add_argument('--version',
+                       action='version', 
+                       version=VERSIONTEXT
+                      )
 
-  parser.add_argument('-c', '--config-file', action=readfile_action, help='specifica un file di configurazione diverso da quello predefinito')
+   parser.add_argument(
+      '-c',
+      '--config-file',
+      action=readfile_action, 
+      help='specifica un file di configurazione diverso da quello predefinito'
+     )
 
-  parser.add_argument('-t', '--throttle-time', type=pos_int, help='il tempo di attesa (in secondi) tra due controlli', dest='throttle_time')
-  parser.add_argument('-v', '--verbose', action='store_true', help="abilita l'output verboso")
-  parser.add_argument('--debug', action='store_true', help="abilita l'output verboso (con messaggi di debug)")
+   parser.add_argument(
+      '-t',
+      '--throttle-time',
+      type=pos_int,
+      help='il tempo di attesa (in secondi) tra due controlli',
+      dest='throttle_time'
+     )
+   
+   parser.add_argument(
+      '-v',
+      '--verbose',
+      action='store_true',
+      help="abilita l'output verboso"
+     )
 
-  log_group = parser.add_mutually_exclusive_group()
-  loggr = log_group.add_argument_group(title='Log', description='opzioni di log.')  
-  loggr.add_argument('--log-dir', action=writepath_action, help='la directory dove salvare il log', dest='logfile_dir')
-  loggr.add_argument('--log-file', action='store', help='il nome del file di log', dest='logfile_name')
-  loggr.add_argument('--log-level', action='store', help='il livello di dettaglio del file di log', dest='logging_level')
-  loggr.add_argument('--log-interval', action='store', choices=['S', 's', 'M', 'm', 'H', 'h', 'D', 'd', 'W', 'w', 'midnight'], help="l'indirizzo mail cui spedire il log", dest='log_interval')
-  loggr.add_argument('--log-period', type=pos_int, help="l'indirizzo mail cui spedire il log", dest='log_when')
-  loggr.add_argument('--log-backup', type=pos_int, help="l'indirizzo mail cui spedire il log", dest='backup_count')
-  log_group.add_argument('--no-log', action='store_true', help='disabilita il log')
+   parser.add_argument(
+      '--debug',
+      action='store_true',
+      help="abilita l'output verboso (con messaggi di debug)"
+     )
 
-  parser.add_argument('--dry', action='store_true', help='esegue il programma senza compiere azioni e senza collegarsi alla rete')
-  parser.add_argument('--dry-wiki', action='store_true', help="esegue il programma senza scrivere su Wikipedia")
+   log_group = parser.add_mutually_exclusive_group()
+   
+   loggr = log_group.add_argument_group(
+                                        title='Log', 
+                                        description='opzioni di log.'
+                                       )  
+   
+   loggr.add_argument(
+                      '--log-dir',
+                      action=writepath_action,
+                      help='la directory dove salvare il log',
+                      dest='logfile_dir'
+                     )
+   
+   loggr.add_argument(
+                      '--log-file',
+                      action='store',
+                      help='il nome del file di log',
+                      dest='logfile_name'
+                     )
+   
+   loggr.add_argument(
+                      '--log-level',
+                      action='store',
+                      help='il livello di dettaglio del file di log',
+                      dest='logging_level'
+                     )
+   
+   loggr.add_argument(
+                      '--log-interval',
+                      action='store',
+                      choices=['S', 's',
+                               'M', 'm',
+                               'H', 'h',
+                               'D', 'd',
+                               'W', 'w',
+                               'midnight'],
+                      help="l'indirizzo mail cui spedire il log",
+                      dest='log_interval')
+   
+   loggr.add_argument(
+                      '--log-period',
+                      type=pos_int,
+                      help="l'indirizzo mail cui spedire il log",
+                      dest='log_when'
+                     )
+   
+   loggr.add_argument(
+                      '--log-backup',
+                      type=pos_int,
+                      help="l'indirizzo mail cui spedire il log",
+                      dest='backup_count'
+                     )
+   
+   log_group.add_argument(
+                          '--no-log', 
+                          action='store_true',
+                          help='disabilita il log'
+                         )
 
-  parser.add_argument('-i', '--id-file', action=readfile_action, help='specifica un file di input', dest='idlist')  
+   parser.add_argument(
+      '--dry',
+      action='store_true',
+      help='esegue il programma senza compiere azioni e senza collegarsi alla rete'
+      )
+   
+   parser.add_argument(
+                       '--dry-wiki',
+                       action='store_true',
+                       help="esegue il programma senza scrivere su Wikipedia"
+                      )
 
-  args = parser.parse_args()
-  #print args
+   args = parser.parse_args()
+   logger.debug("args.__dict__: %s" %args.__dict__)
 
-  logger.debug("args.__dict__: %s" %args.__dict__)
+   dizcli=dict([(name, args.__dict__[name]) 
+                for name in args.__dict__.keys() 
+                if args.__dict__[name] != None])
 
-  dizcli=dict([(name, args.__dict__[name]) for name in args.__dict__.keys() if args.__dict__[name] != None])
+   dizcli['enable_logging'] = not args.no_log
+   del dizcli['no_log']
 
-  dizcli['enable_logging'] = not args.no_log
-  del dizcli['no_log']
-
-  logger.debug("dizcli: %s" %dizcli)
-  return dizcli
+   logger.debug("dizcli: %s" %dizcli)
+   return dizcli
 
 def parseall(dizcli): 
+   cont = container.ConfigContainer(dizcli)
+   
+   spec = SOGBOT['CONFIGSPECFILE']
+   
+   config = dizcli.pop('config_file')
 
-  cont = container.ConfigContainer(dizcli)
+   #print parserconfig.__name__
+   dizconfig = parser.parse(config, spec)
 
-  spec = SOGBOT['CONFIGSPECFILE']
+   cont.add_requested('idlist')
 
-  config = dizcli.pop('config_file')
+   cont.add_optional('donelist',default=None)
 
-  #print parserconfig.__name__
-  dizconfig = parser.parse(config, spec)
+   cont.add_optional('throttle_time', default=5)
 
-  cont.add_requested('idlist')
+   cont.add_optional('verbose', default=False)
 
-  cont.add_optional('throttle_time', default=5)
+   cont.add_optional('debug', default=False)
 
-  cont.add_optional('verbose', default=False)
+   cont.add_optional('enable_logging', default=True)
 
-  cont.add_optional('debug', default=False)
+   cont.add_optional('logfile_dir', default="")
 
-  cont.add_optional('enable_logging', default=True)
+   cont.add_depending('logfile_name', depends='enable_logging', value=True)
 
-  cont.add_optional('logfile_dir', default="")
+   cont.add_depending('logging_level', depends='enable_logging', value=True)
 
-  cont.add_depending('logfile_name', depends='enable_logging', value=True)
+   cont.add_depending('log_when', depends='enable_logging', value=True)
 
-  cont.add_depending('logging_level', depends='enable_logging', value=True)
+   cont.add_depending('log_interval', depends='enable_logging', value=True)
 
-  cont.add_depending('log_when', depends='enable_logging', value=True)
+   cont.add_depending('backup_count', depends='enable_logging', value=True)
 
-  cont.add_depending('log_interval', depends='enable_logging', value=True)
+   cont.add_optional('dry', default=False)
 
-  cont.add_depending('backup_count', depends='enable_logging', value=True)
+   cont.add_optional('dry_wiki', default=False)
 
-  cont.add_optional('dry', default=False)
-
-  cont.add_optional('dry_wiki', default=False)
-
-  cont.merge(dizconfig, priority=False)
-
-  diz = cont.get_container('dict')
+   cont.merge(dizconfig, priority=False)
+   
+   diz = cont.get_container('dict')
   
-  logger.debug("Parsing results: %s" %diz)
+   logger.debug("Parsing results: %s" %diz)
 
-  return diz
+   return diz
  
 def parse():
+   appname = SOGBOT['APPNAME']
+   desc = SOGBOT['DESCRIPTION']
+   vers = SOGBOT['VERSION']
+   epi = SOGBOT['EPILOG']
 
-  appname = SOGBOT['APPNAME']
-  desc = SOGBOT['DESCRIPTION']
-  vers = SOGBOT['VERSION']
-  epi = SOGBOT['EPILOG']
+   dizcli = parsecli(appname, desc, vers, epi)
 
-  dizcli = parsecli(appname, desc, vers, epi)
+   if not ('config_file' in dizcli.keys()):
+      config = SOGBOT['CONFIGFILE']
+      dizcli['config_file'] = config
 
-  if not ('config_file' in dizcli.keys()):
-    config = SOGBOT['CONFIGFILE']
-    dizcli['config_file'] = config
+   logger.debug("dizcli: %s" %dizcli)
 
-  logger.debug("dizcli: %s" %dizcli)
-
-  return dizcli
+   return dizcli
 
 
 # ----- main -----
 if __name__ == '__main__':
-  import os
-  import tuct
+   import os
+   from sbtuct import Tuct
 
-  APPNAME = "sogbot"
-  VERSION = "alpha"
+   APPNAME = "sogbot"
+   VERSION = "alpha"
 
-  CONFIGNAME = 'sogbot.cfg'
+   CONFIGNAME = 'sogbot.cfg'
 
-  CONFIGSPECNAME = 'sogbot.spec.cfg'
+   CONFIGSPECNAME = 'sogbot.spec.cfg'
 
-  CFGDIR = os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + '/../config')
+   CFGDIR = os.path.normpath(
+               os.path.dirname(os.path.realpath(__file__)) + '/../config'
+              )
 
-  print "CFGDIR =", CFGDIR
+   print "CFGDIR =", CFGDIR
 
-  CFGFILE = CFGDIR + '/' + CONFIGNAME
+   CFGFILE = CFGDIR + '/' + CONFIGNAME
 
-  print "CFGFILE = ", CFGFILE
+   print "CFGFILE = ", CFGFILE
 
-  CFGSPECFILE = CFGDIR + '/' + CONFIGSPECNAME
+   CFGSPECFILE = CFGDIR + '/' + CONFIGSPECNAME
 
-  print "CFGSPECFILE = ", CFGSPECFILE
+   print "CFGSPECFILE = ", CFGSPECFILE
 
-  DESCRIPTION = "Descrizione di prova"
+   DESCRIPTION = "Descrizione di prova"
 
-  EPILOG = "Epilogo di prova"
+   EPILOG = "Epilogo di prova"
 
-  app = tuct.Tuct(
-                  APPNAME = APPNAME,
+   app = Tuct(
+              APPNAME = APPNAME,
 
-                  VERSION = VERSION,
+              VERSION = VERSION,
 
-                  CONFIGNAME = CONFIGNAME,
+              CONFIGNAME = CONFIGNAME,
 
-                  CONFIGSPECNAME = CONFIGSPECNAME,
+              CONFIGSPECNAME = CONFIGSPECNAME,
 
-                  CONFIGPATH = CFGFILE,
+              CONFIGPATH = CFGFILE,
 
-                  CONFIGSPECPATH = CFGSPECFILE,
+              CONFIGSPECPATH = CFGSPECFILE,
 
-                  DESCRIPTION = DESCRIPTION,
+              DESCRIPTION = DESCRIPTION,
 
-                  EPILOG = EPILOG 
-                 )
+              EPILOG = EPILOG 
+             )
 
-  dizcli = parsecli(appname, desc, vers, epi)
+   dizcli = parsecli(
+                     appname=app['APPNAME'],
+                     desc=app['DESCRIPTION'], 
+                     ver=app['VERSION'], 
+                     epi=app['EPILOG']
+                    )

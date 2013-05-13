@@ -24,10 +24,12 @@
 ##########################################################################
 
 class Tuct(dict):
-  def __setitem__(self, key, value): pass
-  def __hash__(self):
-    items = self.items()
-    res = hash(items[0])
-    for item in items[1:]:
-      res ^= hash(item)
-      return res
+   def __setitem__(self, key, value):
+      pass
+
+   def __hash__(self):
+      items = self.items()
+      res = hash(items[0])
+      for item in items[1:]:
+         res ^= hash(item)
+         return res

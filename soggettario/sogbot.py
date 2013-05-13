@@ -59,7 +59,7 @@ from sogbotmod import sbsoggettario as sog
 from sogbotmod import sbconfig as config
 from sogbotmod.sbglobal import SOGBOT
 from sogbotmod.sblinkretriever import LinkRetriever
-from sogbotmod.sbtemplate import Template
+from sogbotmod.sbtemplate import TemplateAdder
 
 # --- root logger
 rootlogger = logging.getLogger('sogbot')
@@ -141,6 +141,11 @@ tidlist = tidfile.readlines()
 tidlist = [int(n.strip('\n')) for n in tidlist]
 logger.debug("tidlist: %s" %tidlist)
 
+donelist=[]
+if cfg['donelist'] is not None:
+   donefile = open(cfg['donelist'])
+   donelist = donefile.readlines() 
+
 throttle_time = cfg['throttle_time']
 logger.debug("throttle_time: %s", throttle_time)
 
@@ -180,7 +185,7 @@ for tid in tidlist:
 
    LinkRetriever()
 
-   tmpl=Template(term,uitems,ritems,nitems,bitems)
+   tmpl=TemplateAdder(term,uitems,ritems,nitems,bitems)
    try:
       tmpl.login()
       tmpl.write()
