@@ -53,6 +53,7 @@ class Formattatore(logging.Formatter):
 # ***** system imports *****
 import os
 import time
+import pywikibot
 
 # ***** START sogbot *****
 from sogbotmod import sbsoggettario as sog
@@ -84,6 +85,11 @@ BASE_DIR = SOGBOT['BASE_DIR']
 CURR_DIR = os.path.abspath(os.path.normpath(os.getcwd()))
 verbose = cfgcli['verbose']
 debug = cfgcli['debug']
+
+manual = cfgcli['manual']
+if manual:
+   verbose=True
+   logger.info("--manual set - activating verbose")
 
 if verbose or debug:
    if debug: 
@@ -156,6 +162,17 @@ logger.debug("throttle_time: %s", throttle_time)
 donetid=[]
 errortid=[]
 logger.info("==========\n\n")
+
+logger.debug("==========\n")
+site = pywikibot.Site()
+
+logger.debug("Login ...")
+if not dry:
+   site.login()
+else:
+   logger.debug("Dry run - No login")
+logger.debug("==========\n\n")
+
 for tid in tidlist:
 
    if tid in skiplist:
@@ -166,8 +183,11 @@ for tid in tidlist:
    term=sog.Term(tid)
 
    logger.info("== PROCESSING: %s ==" %term.name)
-   logger.info("-> Wikipedia page: %s (tid:%d) - url: %s" %(term.wikiname,
-                  term.tid,term.wikilink.replace('_',' ')))
+   wikiname=None
+   if term.wikiname:
+      wikiname=term.wikiname.replace('_',' ')
+   logger.info("-> Wikipedia page: %s - url: %s - (tid:%d)" %(wikiname,
+               term.wikilink,term.tid))
 
    uitems=term.used_items()
    logger.info("Sinonimi:")
@@ -196,14 +216,14 @@ for tid in tidlist:
                       ritems=ritems,
                       nitems=nitems,
                       bitems=bitems,
-                      dry=dry or dry_wiki,
+                      site=site,
+                      dry=dry,
+                      dry_wiki=dry_wiki,
                       manual=manual
                      )
    try:
-      tmpl.login()
       tmpl.run()
       saveres=tmpl.save()
-      tmpl.logoff()
       if saveres:
          donetid.append(tid)
    except Exception as e:
@@ -213,6 +233,13 @@ for tid in tidlist:
    logger.debug("donetid: %s" %donetid)
    logger.info("==========\n")
    time.sleep(throttle_time)
+
+logger.debug("\n==========\n")
+if not dry:
+   logger.debug("Logoff ...")
+   pywikibot.stopme()
+logger.debug("==========\n\n")
+
 
 if cfg['donelist'] is not None:
    donelistname=cfg['donelist']

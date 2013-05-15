@@ -137,6 +137,10 @@ class Term(object):
          wikiname=wikilink.split('/')[-1]
          logger.debug(wikilink)
          logger.debug(wikiname)
+      else:
+         if self.dblink:
+            wikiname=self.dblink
+            wikilink='http://it.wikipedia.org/wiki/' + wikiname
 
       return wikiname,wikilink
 

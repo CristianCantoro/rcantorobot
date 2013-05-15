@@ -25,6 +25,7 @@ import pywikibot
 import re
 from sbbot import SogBot
 
+THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
 LINKREGEX = re.compile("== collegamenti esterni ==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
 CATREGEX = re.compile("\[\[Categoria:(.*)\]\]",flags=re.IGNORECASE)
@@ -37,6 +38,7 @@ class TemplateAdder(SogBot):
                 ritems=None,
                 nitems=None,
                 bitems=None,
+                site=None,
                 dry=False,
                 dry_wiki=False,
                 manual=False
@@ -47,10 +49,13 @@ class TemplateAdder(SogBot):
       self.ritems = ritems
       self.nitems = nitems
       self.bitems = bitems
+      if site is None:
+         self.site = pywikibot.Site()
+      else:
+         self.site = site
       self.dry = dry
       self.dry_wiki = dry_wiki
       self.manual = manual
-      self.site = pywikibot.Site()
       super(TemplateAdder, self).__init__(term=self.term,
                                           site=self.site,
                                           dry=self.dry,
@@ -94,38 +99,45 @@ class TemplateAdder(SogBot):
    def treat(self):
       logger.debug("Treat ...")
       super(TemplateAdder, self).treat(self.page)
-      
-      logger.debug(type(self.text))
-      match0=LINKREGEX.search(self.text)
-      match1=PORTALREGEX.search(self.text)
-      match2=CATREGEX.search(self.text)
 
       self.newtext = self.text
-      if match0:
-         logger.debug('Trovato "== Collegamenti esterni =="')
-         templatetext = "\n* {{ThesaurusBNCF}}"
-         pos0 = match0.end()
-         logger.debug(pos0)
-         self.newtext = self._insert_text(templatetext,endpos=pos0)
-      elif match1:
-         logger.debug('Trovato "{{Portale}}"')
-         templatetext = "== Collegamenti esterni ==\n* {{ThesaurusBNCF}}\n\n"
-         pos1 = match1.start()
-         logger.debug(pos1)
-         self.newtext = self._insert_text(templatetext,startpos=pos1)
-      elif match2:
-         logger.debug('Trovata "[Categoria]"')
-         templatetext = "== Collegamenti esterni ==\n* {{ThesaurusBNCF}}\n\n"
-         pos2 = match2.start()
-         logger.debug(pos2)
-         self.newtext = self._insert_text(templatetext,startpos=pos2)
-      else:
-         logger.debug('Inserisco alla fine')
-         templatetext = "\n\n== Collegamenti esterni ==\n* {{ThesaurusBNCF}}\n"
-         self.newtext = self._insert_text(templatetext)
       
-      logger.debug(self.newtext)
-      #self.newtext = self.text + '\npippo'
+      match0=THESREGEX.search(self.text)
+      if not match0:
+         match1=LINKREGEX.search(self.text)
+         match2=PORTALREGEX.search(self.text)
+         match3=CATREGEX.search(self.text)
+   
+         if match1:
+            logger.debug('Trovato "== Collegamenti esterni =="')
+            templatetext = "\n* {{ThesaurusBNCF}}"
+            pos = match1.end()
+            logger.debug(pos)
+            self.newtext = self._insert_text(templatetext,endpos=pos)
+         elif match2:
+            logger.debug('Trovato "{{Portale}}"')
+            templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n\n"
+            pos = match2.start()
+            logger.debug(pos)
+            self.newtext = self._insert_text(templatetext,startpos=pos)
+         elif match3:
+            logger.debug('Trovata "[Categoria]"')
+            templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n\n"
+            pos = match3.start()
+            logger.debug(pos)
+            self.newtext = self._insert_text(templatetext,startpos=pos)
+         else:
+            logger.debug('Inserisco alla fine')
+            templatetext = "\n\n== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n"
+            self.newtext = self._insert_text(templatetext)
+         
+         if self.manual:
+            logger.info(self.newtext)
+         else:
+            logger.debug(self.newtext)
+      else:
+         logger.debug("{{ThesaurusBNCF}} is already there - doing nothing")
+
       return self.newtext
 
    def save(self):
@@ -133,7 +145,10 @@ class TemplateAdder(SogBot):
       saveres=False
       
       if not self.dry or self.dry_wiki:
-         saveres=super(TemplateAdder, self).save(self.newtext,self.page)
+         comment="Aggiungo il template {{Thesaurus BNCF}}"
+         saveres=super(TemplateAdder, self).save(text=self.newtext,
+                                                 page=self.page,
+                                                 comment=comment)
          if saveres:
             logger.debug("Saving template to: %s" %self.term.name)
       else:
@@ -143,7 +158,10 @@ class TemplateAdder(SogBot):
 
    def logoff(self):
       logger.debug("Logoff ...")
-      pywikibot.stopme()
+      if not self.dry:
+         pywikibot.stopme()
+      else:
+         logger.debug("Dry run - No logoff")
 
 # ----- main -----
 if __name__ == '__main__':
