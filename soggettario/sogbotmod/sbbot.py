@@ -70,7 +70,8 @@ class SogBot(object):
          Loads the given page, does some changes, and saves it.
       """
       self.text = self.load(page)
-      #print self.text
+      
+      return self.text
 
 
    def load(self, page):
@@ -89,6 +90,7 @@ class SogBot(object):
                              % (page.title(asLink=True),
                                targetpage.title(asLink=True))
                      )
+         self.page = targetpage
          text = self.load(targetpage)
          return text
       else:
@@ -122,22 +124,22 @@ class SogBot(object):
              botflag=True):
       # only save if something was changed
       saveres=False
-      if text != page.get():
-         if not self.dry:
-            if self.manual:
-               # Show the title of the page we're working on.
-               # Highlight the title in purple.
-               pywikibot.output(u"\n\n>>> \03{lightpurple}%s\03{default} <<<"
-                                % page.title())
-               # show what was changed
-               pywikibot.showDiff(page.get(), text)
-               logger.info(u'Comment: %s' %comment)
+      if not self.dry:
+         if self.manual:
+            # Show the title of the page we're working on.
+            # Highlight the title in purple.
+            pywikibot.output(u"\n\n>>> \03{lightpurple}%s\03{default} <<<"
+                             % page.title())
+            # show what was changed
+            pywikibot.showDiff(page.get(), text)
+            logger.info(u'Comment: %s' %comment)
 
-               choice = pywikibot.inputChoice(
-                       u'Do you want to accept these changes?',
-                       ['Yes', 'No'], ['y', 'N'], 'N')
+            choice = pywikibot.inputChoice(
+                    u'Do you want to accept these changes?',
+                    ['Yes', 'No'], ['y', 'N'], 'N')
 
-            if not self.manual or (self.manual and choice == 'y'):
-               saveres=self._save(page,text,comment,minorEdit,botflag)
+         if (not self.manual) or (self.manual and choice == 'y'):
+            logger.debug("Saving ...")
+            saveres=self._save(page,text,comment,minorEdit,botflag)
                
       return saveres

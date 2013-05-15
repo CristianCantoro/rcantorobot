@@ -19,7 +19,7 @@
 import sys 
 import logging
 
-logger = logging.getLogger('autosend.parse')
+logger = logging.getLogger('sogbot.parse')
 
 from configobj import ConfigObj, ConfigObjError, flatten_errors
 from validate import Validator

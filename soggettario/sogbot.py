@@ -134,6 +134,7 @@ logger.debug("cfg: %s" %cfg)
 idlist = cfg['idlist']
 dry = cfg['dry']
 dry_wiki = cfg['dry_wiki']
+manual = cfg['manual']
 
 tidfile = open(idlist)
 tidlist = tidfile.readlines()
@@ -153,6 +154,7 @@ logger.debug("throttle_time: %s", throttle_time)
 
 #tidlist=[]
 donetid=[]
+errortid=[]
 logger.info("==========\n\n")
 for tid in tidlist:
 
@@ -193,19 +195,21 @@ for tid in tidlist:
                       ritems=ritems,
                       nitems=nitems,
                       bitems=bitems,
-                      dry=True,
-                      manual=True
+                      dry=dry or dry_wiki,
+                      manual=manual
                      )
    try:
       tmpl.login()
-      #tmpl.write()
-      tmpl.save()
+      tmpl.run()
+      saveres=tmpl.save()
       tmpl.logoff()
+      if saveres:
+         donetid.append(tid)
    except Exception as e:
       logger.error("Term %s raised exception: %s" %(term.name,e))
-   finally:
-      donetid.append(tid)
+      errortid.append(tid)
 
+   logger.debug("donetid: %s" %donetid)
    logger.info("==========\n")
    time.sleep(throttle_time)
 
@@ -216,6 +220,13 @@ if cfg['donelist'] is not None:
    donefile = open(donelistname,'w+')
    for tid in donetid:
       donefile.write("%d\n" %tid)
+
+errorlistname=cfg['errorlist']
+logger.debug("Writing errors")
+logger.debug("errorlist file: %s" %errorlistname)
+errorfile = open(errorlistname,'w+')
+for tid in errortid:
+   errorfile.write("%d\n" %tid)
    
 logger.info("Everything done! Great job! Exiting")
 exit(0)

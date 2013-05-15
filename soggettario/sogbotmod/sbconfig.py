@@ -84,6 +84,14 @@ def parsecli(appname, desc, vers, epi):
                        dest='skiplist'
                       )
 
+   parser.add_argument(
+                       '-e',
+                       '--error-file',
+                       action=readfile_action,
+                       help='file di output dei termini che hanno dato errore',
+                       dest='errorlist'
+                      )
+
    parser.add_argument('--version',
                        action='version', 
                        version=VERSIONTEXT
@@ -189,6 +197,12 @@ def parsecli(appname, desc, vers, epi):
                        help="esegue il programma senza scrivere su Wikipedia"
                       )
 
+   parser.add_argument(
+                       '--manual',
+                       action='store_true',
+                       help="esegue il bot in modalità manuale"
+                      )
+
    args = parser.parse_args()
    logger.debug("args.__dict__: %s" %args.__dict__)
 
@@ -217,6 +231,8 @@ def parseall(dizcli):
    cont.add_optional('skiplist',default=None)
 
    cont.add_optional('donelist',default=None)
+   
+   cont.add_optional('errorlist',default="errorlist.txt")
 
    cont.add_optional('throttle_time', default=5)
 
@@ -241,6 +257,8 @@ def parseall(dizcli):
    cont.add_optional('dry', default=False)
 
    cont.add_optional('dry_wiki', default=False)
+   
+   cont.add_optional('manual', default=False)
 
    cont.merge(dizconfig, priority=False)
    
