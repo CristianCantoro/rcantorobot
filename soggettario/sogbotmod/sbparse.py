@@ -23,7 +23,7 @@ logger = logging.getLogger('autosend.parse')
 
 from configobj import ConfigObj, ConfigObjError, flatten_errors
 from validate import Validator
-from sbvalidate import writepath_check, readfile_check, loglevel_check
+from sbvalidate import writefile_check, readfile_check, loglevel_check
 
 
 class Error(Exception):
@@ -81,7 +81,7 @@ def _update_dict(section, key, diz):
       diz[key] = val
 
 VALIDATEDICT = {
-      'writepath' : writepath_check,      
+      'writefile' : writefile_check,      
       'loglevel' : loglevel_check,
       'readfile' : readfile_check,
     }
@@ -111,10 +111,10 @@ def parse(config_infile, spec_infile):
             msg = 'The "%s" key in the section "%s" failed validation\n' % (key, ', '.join(section_list))
             logger.warning(msg)
 
-   else:
-      #raise MissingParameter(section_list)
-      msg = 'The following section was missing:%s' % ', '.join(section_list)
-      logger.warning(msg)
+         else:
+            #raise MissingParameter(section_list)
+            msg = 'The following section was missing:%s' % ', '.join(section_list)
+            logger.warning(msg)
   
    logger.debug("config  %s" %config)
   

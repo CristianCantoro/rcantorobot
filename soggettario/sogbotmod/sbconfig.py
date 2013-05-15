@@ -25,7 +25,7 @@ import logging
 from sbglobal import SOGBOT
 from sogbotmod import sbparse as parser
 from sogbotmod import sbcontainer as container
-from sbvalidate import writepath_check, readfile_check
+from sbvalidate import writefile_check, readfile_check
 
 logger = logging.getLogger('sogbot.config')
 
@@ -43,9 +43,9 @@ class readfile_action(argparse.Action):
       values = readfile_check(values)
       setattr(namespace, self.dest, values)
 
-class writepath_action(argparse.Action):
+class writefile_action(argparse.Action):
    def __call__(self, parser, namespace, values, option_string=None):
-      values = writepath_check(values)
+      values = writefile_check(values)
       setattr(namespace, self.dest, values)
 
 def parsecli(appname, desc, vers, epi):
@@ -71,9 +71,17 @@ def parsecli(appname, desc, vers, epi):
    parser.add_argument(
                        '-d',
                        '--done-file',
-                       action=readfile_action,
-                       help='file di input dei termini già elaborati',
+                       action=writefile_action,
+                       help='file di output dei termini elaborati',
                        dest='donelist'
+                      )
+
+   parser.add_argument(
+                       '-s',
+                       '--skip-file',
+                       action=readfile_action,
+                       help='file di input dei termini da saltare',
+                       dest='skiplist'
                       )
 
    parser.add_argument('--version',
@@ -118,7 +126,7 @@ def parsecli(appname, desc, vers, epi):
    
    loggr.add_argument(
                       '--log-dir',
-                      action=writepath_action,
+                      action=writefile_action,
                       help='la directory dove salvare il log',
                       dest='logfile_dir'
                      )
@@ -205,6 +213,8 @@ def parseall(dizcli):
    dizconfig = parser.parse(config, spec)
 
    cont.add_requested('idlist')
+   
+   cont.add_optional('skiplist',default=None)
 
    cont.add_optional('donelist',default=None)
 

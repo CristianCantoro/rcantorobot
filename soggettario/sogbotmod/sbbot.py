@@ -35,9 +35,9 @@ logger=logging.getLogger('sogbot.sbbot')
 import pywikibot
 from pywikibot import pagegenerators
 
-class SogBot:
+class SogBot(object):
 
-   def __init__(self, site, term, dry,manual):
+   def __init__(self, term, site, dry, manual):
       """
       Constructor. Parameters:
          @param generator: The page generator that determines on which pages
@@ -49,8 +49,8 @@ class SogBot:
       """
       self.site = site
       self.dry = dry
-      self.manual = manual
       self.term = term
+      self.manual = manual
       self.generator = self._get_generator()
 
    def _get_generator(self):

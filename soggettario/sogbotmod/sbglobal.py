@@ -64,6 +64,8 @@ SOGBOT = tuct.Tuct(
         
         BASE_DIR = BASE_DIR,
         
+        CURR_DIR = CURR_DIR,
+
         CONFIGNAME = CONFIGNAME,
         
         CONFIGFILE = CONFIGFILE,

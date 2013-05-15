@@ -15,30 +15,29 @@ logger.setLevel(logging.WARNING)
 
 from sbglobal import SOGBOT
 
-def writepath_check(value):
-    value = os.path.abspath(os.path.normpath(value))
-    #print "path: %s" %value
-    if isinstance(value, list):
+def writefile_check(value):
+   if os.path.dirname(value) == '':
+      curr_dir=SOGBOT['CURR_DIR']
+      value = os.path.abspath(os.path.normpath(os.path.join(curr_dir,value)))
+
+   if isinstance(value, list):
       msg = 'A list was passed when a path with write permission was expected'
       logger.error(msg)
       raise ValidateError(msg)
       
-    #print "type: ", type(value)
-    #print os.path.exists(value)
-    #print "qua"
-    logger.debug(value)
-    if not os.path.exists(value):
-      msg = '"%s" is not a valid path' % value
+   logger.debug(value)
+   if os.path.exists(value):
+      msg = '"%s" already exists' %value
       
       logger.error(msg)
       raise ValidateError(msg)
       
-    elif not os.access(value, os.W_OK):
+   elif not os.access(os.path.dirname(value), os.W_OK):
       msg = 'User has not the valid permissions to write: "%s"' % value
       logger.error(msg)
       
       raise ValidateError(msg)
-    return value
+   return value
 
 def readpath_check(value):
     value = os.path.abspath(os.path.normpath(value))

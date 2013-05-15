@@ -141,27 +141,30 @@ tidlist = tidfile.readlines()
 tidlist = [int(n.strip('\n')) for n in tidlist]
 logger.debug("tidlist: %s" %tidlist)
 
-donelist=[]
-if cfg['donelist'] is not None:
-   donefile = open(cfg['donelist'])
-   donelist = donefile.readlines() 
+skiplist=[]
+if cfg['skiplist'] is not None:
+   skipfile = open(cfg['skiplist'])
+   skiplist = skipfile.readlines() 
+   skiplist = [int(s.strip()) for s in skiplist]
+logger.debug('skiplist: %s' %skiplist)
 
 throttle_time = cfg['throttle_time']
 logger.debug("throttle_time: %s", throttle_time)
 
-donetid = []
-
 #tidlist=[]
+donetid=[]
 logger.info("==========\n\n")
 for tid in tidlist:
 
-   if tid in donetid:
+   if tid in skiplist:
+      logger.debug("Tid %d in skiplist. Skipping ..." %tid)
+      logger.info("==========\n")
       continue
 
    term=sog.Term(tid)
 
    logger.info("== PROCESSING: %s ==" %term.name)
-   logger.info("-> Wikipedia page: %s" %term.wikilink)
+   logger.info("-> Wikipedia page: %s, %d" %(term.wikilink,term.tid))
 
    uitems=term.used_items()
    logger.info("Sinonimi:")
@@ -185,10 +188,17 @@ for tid in tidlist:
 
    LinkRetriever()
 
-   tmpl=TemplateAdder(term,uitems,ritems,nitems,bitems)
+   tmpl=TemplateAdder(term=term,
+                      uitems=uitems,
+                      ritems=ritems,
+                      nitems=nitems,
+                      bitems=bitems,
+                      dry=True,
+                      manual=True
+                     )
    try:
       tmpl.login()
-      tmpl.write()
+      #tmpl.write()
       tmpl.save()
       tmpl.logoff()
    except Exception as e:
@@ -199,5 +209,13 @@ for tid in tidlist:
    logger.info("==========\n")
    time.sleep(throttle_time)
 
+if cfg['donelist'] is not None:
+   donelistname=cfg['donelist']
+   logger.debug("Writing processed tids in donelist")
+   logger.debug("donelist: %s" %donelistname)
+   donefile = open(donelistname,'w+')
+   for tid in donetid:
+      donefile.write("%d\n" %tid)
+   
 logger.info("Everything done! Great job! Exiting")
 exit(0)

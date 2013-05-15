@@ -26,7 +26,15 @@ from sbbot import SogBot
 
 class TemplateAdder(SogBot):
 
-   def __init__(self,term,uitems=None,ritems=None,nitems=None,bitems=None,dry=False,manual=False):
+   def __init__(self,
+                term,
+                uitems=None,
+                ritems=None,
+                nitems=None,
+                bitems=None,
+                dry=False,
+                manual=False
+               ):
       dry = True
       manual = True
 
@@ -38,7 +46,11 @@ class TemplateAdder(SogBot):
       self.dry = dry
       self.manual = manual
       self.site = pywikibot.Site()
-      super(TemplateAdder, self).__init__(self.term,self.dry,self.site)
+      super(TemplateAdder, self).__init__(term=self.term,
+                                          site=self.site,
+                                          dry=self.dry,
+                                          manual=self.manual
+                                         )
       
 
    def login(self):
