@@ -17,12 +17,13 @@ Nella cartella *soggettario* è possibile trovare gli script che costituiscono i
 che serve a inserire il
 Per approfondire si può consultare questa [discussione su Wikipedia](http://it.wikipedia.org/wiki/Discussioni_progetto:Coordinamento/Bibliografia_e_fonti#Collaborazione_come_Biblioteca_Nazionale_di_Firenze)
 
-I dati utilizzati da SogBo si trovano in [questa pagina](http://it.wikipedia.org/wiki/Progetto:Coordinamento/Bibliografia_e_fonti/Lista_lemmi_Thesaurus_del_Nuovo_Soggettario_BNCF)
+I dati utilizzati da SogBot si trovano in [questa pagina](http://it.wikipedia.org/wiki/Progetto:Coordinamento/Bibliografia_e_fonti/Lista_lemmi_Thesaurus_del_Nuovo_Soggettario_BNCF)
 e sono stati gentilmente condivisi da:
 *    Anna Lucarelli
 *    Pepe Maria Grazia
 *    Elisabetta Viti
 *    Giovanni Bergamin
+
 della [Biblioteca Nazionale Centrale di Firenze](http://www.bncf.firenze.sbn.it)
 
 Contacts/Contatti
