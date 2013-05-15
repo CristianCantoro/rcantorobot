@@ -20,7 +20,7 @@
 
 import logging
 
-logger = logging.getLogger('sogbotmod.sbsoggettario')
+logger = logging.getLogger('sogbot.sbsoggettario')
 
 import argparse
 import tempfile
@@ -87,7 +87,7 @@ class Term(object):
       self.termpage = self.get_termpage()
       self.name = self.get_name()
       self.dblink = self.get_dblink()
-      self.wikilink = self.get_wikilink()
+      self.wikiname, self.wikilink = self.get_wikilink()
       self._registeredPlugin=False
 
    def get_name(self):
@@ -129,11 +129,16 @@ class Term(object):
       html = fromstring(self.termpage)
       links = html.xpath('//a/@href')
       wikilinklist=[l for l in links if "it.wikipedia.org" in l]
+      
+      wikiname=None
       wikilink=None
       if len(wikilinklist) > 0:
          wikilink=wikilinklist[0].replace(" ","_")
+         wikiname=wikilink.split('/')[-1]
+         logger.debug(wikilink)
+         logger.debug(wikiname)
 
-      return wikilink
+      return wikiname,wikilink
 
    def _register_plugin(self):
       rdflib.plugin.register(
@@ -154,10 +159,10 @@ class Term(object):
       return qres
 
    def has_dblink(self):
-      return self.dblink is None
+      return self.dblink is not None
 
    def has_wikilink(self):
-      return self.wikilink is None
+      return self.wikilink is not None
 
    def used_items(self):
       logger.debug('USED')

@@ -166,7 +166,8 @@ for tid in tidlist:
    term=sog.Term(tid)
 
    logger.info("== PROCESSING: %s ==" %term.name)
-   logger.info("-> Wikipedia page: %s, %d" %(term.wikilink,term.tid))
+   logger.info("-> Wikipedia page: %s (tid:%d) - url: %s" %(term.wikiname,
+                  term.tid,term.wikilink.replace('_',' ')))
 
    uitems=term.used_items()
    logger.info("Sinonimi:")

@@ -55,7 +55,7 @@ class SogBot(object):
 
    def _get_generator(self):
 
-      pages = [pywikibot.Page(pywikibot.Link(self.term.name, self.site))]
+      pages = [pywikibot.Page(pywikibot.Link(self.term.wikiname, self.site))]
       gen = iter([page for page in pages])
       gen = pagegenerators.PreloadingGenerator(gen)
 
