@@ -26,7 +26,7 @@ import re
 from sbbot import SogBot
 
 THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
-LINKREGEX = re.compile("== collegamenti esterni ==",flags=re.IGNORECASE)
+LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
 CATREGEX = re.compile("\[\[Categoria:(.*)\]\]",flags=re.IGNORECASE)
 
@@ -110,25 +110,28 @@ class TemplateAdder(SogBot):
    
          if match1:
             logger.debug('Trovato "== Collegamenti esterni =="')
-            templatetext = "\n* {{ThesaurusBNCF}}"
+            templatetext = "\n* {{ThesaurusBNCF|%d}}" %self.term.tid
             pos = match1.end()
             logger.debug(pos)
             self.newtext = self._insert_text(templatetext,endpos=pos)
          elif match2:
             logger.debug('Trovato "{{Portale}}"')
-            templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n\n"
+            templatetext = "== Collegamenti esterni ==\n"
+            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
             pos = match2.start()
             logger.debug(pos)
             self.newtext = self._insert_text(templatetext,startpos=pos)
          elif match3:
             logger.debug('Trovata "[Categoria]"')
-            templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n\n"
+            templatetext = "== Collegamenti esterni ==\n"
+            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
             pos = match3.start()
             logger.debug(pos)
             self.newtext = self._insert_text(templatetext,startpos=pos)
          else:
             logger.debug('Inserisco alla fine')
-            templatetext = "\n\n== Collegamenti esterni ==\n* {{Thesaurus BNCF}}\n"
+            templatetext = "\n\n== Collegamenti esterni ==\n"
+            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
             self.newtext = self._insert_text(templatetext)
          
          if self.manual:
