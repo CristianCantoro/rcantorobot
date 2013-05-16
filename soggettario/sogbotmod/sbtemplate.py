@@ -25,6 +25,7 @@ import pywikibot
 import re
 from sbbot import SogBot
 
+CLEANREGEX = re.compile("==\s*collegamenti esterni\s*==\s*\n\*\s*{{ThesaurusBNCF(.*)}}",flags=re.IGNORECASE)
 THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
 LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
@@ -103,14 +104,15 @@ class TemplateAdder(SogBot):
       self.newtext = self.text
       
       match0=THESREGEX.search(self.text)
+      
       if not match0:
          match1=LINKREGEX.search(self.text)
          match2=PORTALREGEX.search(self.text)
          match3=CATREGEX.search(self.text)
-   
+    
          if match1:
             logger.debug('Trovato "== Collegamenti esterni =="')
-            templatetext = "\n* {{ThesaurusBNCF|%d}}" %self.term.tid
+            templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
             pos = match1.end()
             logger.debug(pos)
             self.newtext = self._insert_text(templatetext,endpos=pos)
@@ -133,13 +135,13 @@ class TemplateAdder(SogBot):
             templatetext = "\n\n== Collegamenti esterni ==\n"
             templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
             self.newtext = self._insert_text(templatetext)
-         
+          
          if self.manual:
             logger.info(self.newtext)
          else:
             logger.debug(self.newtext)
       else:
-         logger.debug("{{ThesaurusBNCF}} is already there - doing nothing")
+         logger.debug("{{Thesaurus BNCF}} is already there - doing nothing")
 
       return self.newtext
 
@@ -158,6 +160,20 @@ class TemplateAdder(SogBot):
          logger.debug("Dry run - doing nothing")
 
       return saveres
+
+   def clean(self):
+      match0=CLEANREGEX.search(self.text)
+      
+      if match0:
+         logger.debug("Trovato {{ThesaurusBNCF}}")
+         startpos = match0.start()
+         endpos = match0.end()
+         templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF|%d}}\n" %self.term.tid
+         
+         newtext = self.text[:startpos]
+         newtext = newtext + templatetext
+         newtext = newtext + self.text[endpos+1:]
+         self.newtext = newtext
 
    def logoff(self):
       logger.debug("Logoff ...")
