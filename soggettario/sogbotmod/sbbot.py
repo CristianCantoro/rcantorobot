@@ -94,6 +94,8 @@ class SogBot(object):
          text = self.load(targetpage)
          return text
       else:
+         logger.debug("Get page data")
+         self.item = pywikibot.ItemPage.fromPage(self.page)
          return text
       return None
 

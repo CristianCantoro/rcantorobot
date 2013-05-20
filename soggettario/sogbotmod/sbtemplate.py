@@ -105,6 +105,22 @@ class TemplateAdder(SogBot):
 
       self.newtext = self.text
       
+      itemdict=self.item.get()
+      target=None
+      try:
+         claim=itemdict['claims']['p508'][0]
+         target=claim.getTarget()
+      except KeyError:
+         target=None
+         logger.debug("Wikidata: property 'Thesaurus BNCF' (p508) not found")
+      except IndexError:
+         target=None
+         logger.debug("Wikidata property has no claims")
+
+      self.target = target
+      if target is None:
+         logger.debug("No data from Wikidata")
+      
       match0=THESREGEX.search(self.text)
       
       if not match0:
@@ -116,21 +132,30 @@ class TemplateAdder(SogBot):
             match3=CATREGEX.search(self.text)            
             if match1:
                logger.debug('Trovato "== Collegamenti esterni =="')
-               templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
+               if self.target:
+                  templatetext = "\n* {{Thesaurus BNCF}}"
+               else:
+                  templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
                pos = match1.end()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,endpos=pos)
             elif match2:
                logger.debug('Trovato "{{Portale}}"')
                templatetext = "== Collegamenti esterni ==\n"
-               templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+               if self.target:
+                  templatetext += "* {{Thesaurus BNCF}}\n\n"
+               else:
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
                pos = match2.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
             elif match3:
                logger.debug('Trovata "[Categoria]"')
-               templatetext = "== Collegamenti esterni ==\n"
-               templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+               templatetext = "== Collegamenti esterni ==\n"              
+               if self.target:
+                  templatetext += "* {{Thesaurus BNCF}}\n\n"
+               else:
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
                pos = match3.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
@@ -141,9 +166,11 @@ class TemplateAdder(SogBot):
                self.newtext = self._insert_text(templatetext)
              
             if self.manual:
-               logger.info(self.newtext)
+               pass
+               #logger.info(self.newtext)
             else:
-               logger.debug(self.newtext)
+               pass
+               #logger.debug(self.newtext)
 
          else:
             logger.debug("disambiguation page - doing nothing")
@@ -151,7 +178,7 @@ class TemplateAdder(SogBot):
  
       else:
          logger.debug("{{Thesaurus BNCF}} is already there - doing nothing")
-
+      
       return self.newtext
 
    def save(self):
