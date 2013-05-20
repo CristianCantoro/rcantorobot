@@ -25,7 +25,8 @@ import pywikibot
 import re
 from sbbot import SogBot
 
-CLEANREGEX = re.compile("==\s*collegamenti esterni\s*==\s*\n\*\s*{{ThesaurusBNCF(.*)}}",flags=re.IGNORECASE)
+CLEANREGEX = re.compile("\n==\s*collegamenti esterni\s*==\s*\n\*\s*{{Thesaurus\s*BNCF(.*)}}",flags=re.IGNORECASE)
+EXTLINKREGEX =re.compile("http://",flags=re.IGNORECASE)
 THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
 DISAMBREGEX=re.compile("{{disambigua}}",flags=re.IGNORECASE)
 LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
@@ -44,6 +45,7 @@ class TemplateAdder(SogBot):
                 site=None,
                 dry=False,
                 dry_wiki=False,
+                clean=False,
                 manual=False
                ):
 
@@ -58,6 +60,7 @@ class TemplateAdder(SogBot):
          self.site = site
       self.dry = dry
       self.dry_wiki = dry_wiki
+      self.clean = clean
       self.manual = manual
       super(TemplateAdder, self).__init__(term=self.term,
                                           site=self.site,
@@ -65,6 +68,7 @@ class TemplateAdder(SogBot):
                                           manual=self.manual
                                          )
       self._disamb = False
+      self._nodata = False
 
    def login(self):
       logger.debug("Login ...")
@@ -78,7 +82,9 @@ class TemplateAdder(SogBot):
       if not self.dry:
          for page in self.generator:
             self.page=page
-            self.treat()
+            if self.clean:
+               self._clean()
+            self._treat()
       else:
          logger.debug("Dry run - No run")
 
@@ -99,7 +105,7 @@ class TemplateAdder(SogBot):
 
       return newtext
 
-   def treat(self):
+   def _treat(self):
       logger.debug("Treat ...")
       super(TemplateAdder, self).treat(self.page)
 
@@ -119,23 +125,24 @@ class TemplateAdder(SogBot):
 
       self.target = target
       if target is None:
+         self._nodata = True
          logger.debug("No data from Wikidata")
       
-      match0=THESREGEX.search(self.text)
+      match0=THESREGEX.search(self.newtext)
       
       if not match0:
-         match_dis=DISAMBREGEX.search(self.text)
+         match_dis=DISAMBREGEX.search(self.newtext)
          
          if not match_dis:
-            match1=LINKREGEX.search(self.text)
-            match2=PORTALREGEX.search(self.text)
-            match3=CATREGEX.search(self.text)            
+            match1=LINKREGEX.search(self.newtext)
+            match2=PORTALREGEX.search(self.newtext)
+            match3=CATREGEX.search(self.newtext)            
             if match1:
                logger.debug('Trovato "== Collegamenti esterni =="')
                if self.target:
-                  templatetext = "\n* {{Thesaurus BNCF}}"
+                  templatetext = "\n* {{Thesaurus BNCF}}\n"
                else:
-                  templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
+                  templatetext = "\n* {{Thesaurus BNCF|%d}}\n" %self.term.tid
                pos = match1.end()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,endpos=pos)
@@ -143,9 +150,9 @@ class TemplateAdder(SogBot):
                logger.debug('Trovato "{{Portale}}"')
                templatetext = "== Collegamenti esterni ==\n"
                if self.target:
-                  templatetext += "* {{Thesaurus BNCF}}\n\n"
+                  templatetext += "* {{Thesaurus BNCF}}\n"
                else:
-                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n" %self.term.tid
                pos = match2.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
@@ -153,9 +160,9 @@ class TemplateAdder(SogBot):
                logger.debug('Trovata "[Categoria]"')
                templatetext = "== Collegamenti esterni ==\n"              
                if self.target:
-                  templatetext += "* {{Thesaurus BNCF}}\n\n"
+                  templatetext += "* {{Thesaurus BNCF}}\n"
                else:
-                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n" %self.term.tid
                pos = match3.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
@@ -166,11 +173,9 @@ class TemplateAdder(SogBot):
                self.newtext = self._insert_text(templatetext)
              
             if self.manual:
-               pass
-               #logger.info(self.newtext)
+               logger.info(self.newtext)
             else:
-               pass
-               #logger.debug(self.newtext)
+               logger.debug(self.newtext)
 
          else:
             logger.debug("disambiguation page - doing nothing")
@@ -186,7 +191,9 @@ class TemplateAdder(SogBot):
       saveres=False
       
       if not self.dry or self.dry_wiki:
-         comment="Aggiungo il template {{Thesaurus BNCF}}"
+         #comment="Aggiungo il template {{Thesaurus BNCF}}"
+         comment="Tolgo il parametro di {{Thesaurus BNCF}} per usarlo con Wikidata"
+         logger.info("Wikidata target: %s" %str(self.target))
          saveres=super(TemplateAdder, self).save(text=self.newtext,
                                                  page=self.page,
                                                  comment=comment)
@@ -197,22 +204,42 @@ class TemplateAdder(SogBot):
 
       return saveres
 
-   def clean(self):
+   def _clean(self):
+      logger.debug("Clean...")
+      super(TemplateAdder, self).treat(self.page)
+      self.newtext = self.text
       match0=CLEANREGEX.search(self.text)
       
       if match0:
          logger.debug("Trovato {{ThesaurusBNCF}}")
          startpos = match0.start()
          endpos = match0.end()
-         templatetext = "== Collegamenti esterni ==\n* {{Thesaurus BNCF|%d}}\n" %self.term.tid
+         restext=self.text[endpos+1:]
+         match1=EXTLINKREGEX.search(restext)
          
-         newtext = self.text[:startpos]
-         newtext = newtext + templatetext
-         newtext = newtext + self.text[endpos+1:]
-         self.newtext = newtext
+         if match1:
+            templatetext = "== Collegamenti esterni =="
+            newtext = self.text[:startpos]
+            newtext = newtext + templatetext
+            newtext = newtext + self.text[endpos+1:]
+            self.newtext = newtext
+         else:
+            newtext = self.text[:startpos]
+            newtext = newtext + self.text[endpos+1:]
+            self.newtext = newtext
+         
+         if self.manual:
+            logger.info(self.newtext)
+         else:
+            logger.debug(self.newtext)
+         
+      return self.newtext
 
    def is_disamb(self):
       return self._disamb
+
+   def has_nodata(self):
+      return self._nodata
 
    def logoff(self):
       logger.debug("Logoff ...")

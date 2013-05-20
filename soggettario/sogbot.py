@@ -140,6 +140,7 @@ logger.debug("cfg: %s" %cfg)
 idlist = cfg['idlist']
 dry = cfg['dry']
 dry_wiki = cfg['dry_wiki']
+clean = cfg['clean']
 manual = cfg['manual']
 
 tidfile = open(idlist)
@@ -158,7 +159,53 @@ logger.debug('skiplist: %s' %skiplist)
 throttle_time = cfg['throttle_time']
 logger.debug("throttle_time: %s", throttle_time)
 
-#tidlist=[]
+# ***** utility functions *****
+
+def write_term(filename,term,msg):
+   if filename is not None:
+      logger.debug(msg)
+      logger.debug("filename: %s" %filename)
+      outfile = open(filename,'a+')
+      outfile.write("%d\n" %term.tid)
+      outfile.close()
+   
+      filename=filename+'.term'
+      logger.debug("Writing terms")
+      logger.debug("term filename: %s" %filename)
+      outfile = open(filename,'a+')
+      outfile.write("%s: %d\n" %(term.name,term.tid))
+      outfile.close()
+
+#if cfg['disamblist'] is not None:
+#    disamblistname=cfg['disamblist']
+#    logger.debug("Writing disamb tids in disamblist")
+#    logger.debug("disamblist: %s" %disamblistname)
+#    disambfile = open(disamblistname,'w+')
+#    for term in disambterm:
+#       disambfile.write("%d\n" %term.tid)
+#  
+#    disamblistname=disamblistname+'.term'
+#    logger.debug("Writing disamb terms in disamblist")
+#    logger.debug("disamblist: %s" %disamblistname)
+#    disambfile = open(disamblistname,'w+')
+#    for term in disambterm:
+#       disambfile.write("%s: %d\n" %(term.name,term.tid))
+
+
+# errorlistname=cfg['errorlist']
+# logger.debug("Writing errors (tids)")
+# logger.debug("errorlist file: %s" %errorlistname)
+# errorfile = open(errorlistname,'w+')
+# for term in errorterm:
+#    errorfile.write("%d\n" %term.tid)
+# 
+# errorlistname=errorlistname+'.term'
+# logger.debug("Writing errors (terms)")
+# logger.debug("errorlist file: %s" %errorlistname)
+# errorfile = open(errorlistname,'w+')
+# for term in errorterm:
+#    errorfile.write("%s: %d\n" %(term.name,term.tid))
+
 doneterm=[]
 errorterm=[]
 disambterm=[]
@@ -220,15 +267,18 @@ for tid in tidlist:
                       site=site,
                       dry=dry,
                       dry_wiki=dry_wiki,
+                      clean=clean,
                       manual=manual
                      )
    try:
       tmpl.run()
       saveres=tmpl.save()
       if saveres:
-         doneterm.append(term)
+         write_term(cfg['donelist'],term,'Writing processed terms to donelist')
       if tmpl.is_disamb():
-         disambterm.append(term)
+         write_term(cfg['disamblist'],term,'Writing disambig terms to disamblist')
+      if tmpl.has_nodata():
+         write_term(cfg['nodatalist'],term,'Writing processed terms to nodatalist')
    except Exception as e:
       logger.error("Term %s raised exception: %s" %(term.name,e))
       errorterm.append(term)
@@ -242,53 +292,6 @@ if not dry:
    logger.debug("Logoff ...")
    pywikibot.stopme()
 logger.debug("==========\n\n")
-
-
-if cfg['donelist'] is not None:
-   donelistname=cfg['donelist']
-   logger.debug("Writing processed tids in donelist")
-   logger.debug("donelist: %s" %donelistname)
-   donefile = open(donelistname,'w+')
-   for term in doneterm:
-      donefile.write("%d\n" %term.tid)
-
-   donelistname=donelistname+'.term'
-   logger.debug("Writing processed terms in donelist")
-   logger.debug("donelist: %s" %donelistname)
-   donefile = open(donelistname,'w+')
-   for term in doneterm:
-      donefile.write("%s: %d\n" %(term.name,term.tid))
-
-
-if cfg['disamblist'] is not None:
-   disamblistname=cfg['disamblist']
-   logger.debug("Writing disamb tids in disamblist")
-   logger.debug("disamblist: %s" %disamblistname)
-   disambfile = open(disamblistname,'w+')
-   for term in disambterm:
-      disambfile.write("%d\n" %term.tid)
-
-   disamblistname=disamblistname+'.term'
-   logger.debug("Writing disamb terms in disamblist")
-   logger.debug("disamblist: %s" %disamblistname)
-   disambfile = open(disamblistname,'w+')
-   for term in disambterm:
-      disambfile.write("%s: %d\n" %(term.name,term.tid))
-
-
-errorlistname=cfg['errorlist']
-logger.debug("Writing errors (tids)")
-logger.debug("errorlist file: %s" %errorlistname)
-errorfile = open(errorlistname,'w+')
-for term in errorterm:
-   errorfile.write("%d\n" %term.tid)
-
-errorlistname=errorlistname+'.term'
-logger.debug("Writing errors (terms)")
-logger.debug("errorlist file: %s" %errorlistname)
-errorfile = open(errorlistname,'w+')
-for term in errorterm:
-   errorfile.write("%s: %d\n" %(term.name,term.tid))
       
 logger.info("Everything done! Great job! Exiting")
 exit(0)

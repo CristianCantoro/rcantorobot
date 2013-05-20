@@ -83,7 +83,15 @@ def parsecli(appname, desc, vers, epi):
                        help='file di output delle pagine di disambiguazione',
                        dest='disamblist'
                       )
-   
+
+   parser.add_argument(
+                       '-n',
+                       '--nodata-file',
+                       action=writefile_action,
+                       help='file di output delle pagine di disambiguazione',
+                       dest='nodatalist'
+                      )
+
    parser.add_argument(
                        '-s',
                        '--skip-file',
@@ -206,6 +214,12 @@ def parsecli(appname, desc, vers, epi):
                       )
 
    parser.add_argument(
+                       '--clean',
+                       action='store_true',
+                       help="esegue il programma senza scrivere su Wikipedia"
+                      )
+
+   parser.add_argument(
                        '--manual',
                        action='store_true',
                        help="esegue il bot in modalità manuale"
@@ -242,6 +256,8 @@ def parseall(dizcli):
    
    cont.add_optional('disamblist',default=None)
    
+   cont.add_optional('nodatalist',default=None)
+   
    cont.add_optional('errorlist',default="errorlist.txt")
 
    cont.add_optional('throttle_time', default=5)
@@ -267,6 +283,8 @@ def parseall(dizcli):
    cont.add_optional('dry', default=False)
 
    cont.add_optional('dry_wiki', default=False)
+   
+   cont.add_optional('clean', default=False)
    
    cont.add_optional('manual', default=False)
 
