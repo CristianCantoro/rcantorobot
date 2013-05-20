@@ -27,9 +27,11 @@ from sbbot import SogBot
 
 CLEANREGEX = re.compile("==\s*collegamenti esterni\s*==\s*\n\*\s*{{ThesaurusBNCF(.*)}}",flags=re.IGNORECASE)
 THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
+DISAMBREGEX=re.compile("{{disambigua}}",flags=re.IGNORECASE)
 LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
 CATREGEX = re.compile("\[\[Categoria:(.*)\]\]",flags=re.IGNORECASE)
+
 
 class TemplateAdder(SogBot):
 
@@ -62,7 +64,7 @@ class TemplateAdder(SogBot):
                                           dry=self.dry,
                                           manual=self.manual
                                          )
-      
+      self._disamb = False
 
    def login(self):
       logger.debug("Login ...")
@@ -106,40 +108,47 @@ class TemplateAdder(SogBot):
       match0=THESREGEX.search(self.text)
       
       if not match0:
-         match1=LINKREGEX.search(self.text)
-         match2=PORTALREGEX.search(self.text)
-         match3=CATREGEX.search(self.text)
-    
-         if match1:
-            logger.debug('Trovato "== Collegamenti esterni =="')
-            templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
-            pos = match1.end()
-            logger.debug(pos)
-            self.newtext = self._insert_text(templatetext,endpos=pos)
-         elif match2:
-            logger.debug('Trovato "{{Portale}}"')
-            templatetext = "== Collegamenti esterni ==\n"
-            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
-            pos = match2.start()
-            logger.debug(pos)
-            self.newtext = self._insert_text(templatetext,startpos=pos)
-         elif match3:
-            logger.debug('Trovata "[Categoria]"')
-            templatetext = "== Collegamenti esterni ==\n"
-            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
-            pos = match3.start()
-            logger.debug(pos)
-            self.newtext = self._insert_text(templatetext,startpos=pos)
+         match_dis=DISAMBREGEX.search(self.text)
+         
+         if not match_dis:
+            match1=LINKREGEX.search(self.text)
+            match2=PORTALREGEX.search(self.text)
+            match3=CATREGEX.search(self.text)            
+            if match1:
+               logger.debug('Trovato "== Collegamenti esterni =="')
+               templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
+               pos = match1.end()
+               logger.debug(pos)
+               self.newtext = self._insert_text(templatetext,endpos=pos)
+            elif match2:
+               logger.debug('Trovato "{{Portale}}"')
+               templatetext = "== Collegamenti esterni ==\n"
+               templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+               pos = match2.start()
+               logger.debug(pos)
+               self.newtext = self._insert_text(templatetext,startpos=pos)
+            elif match3:
+               logger.debug('Trovata "[Categoria]"')
+               templatetext = "== Collegamenti esterni ==\n"
+               templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+               pos = match3.start()
+               logger.debug(pos)
+               self.newtext = self._insert_text(templatetext,startpos=pos)
+            else:
+               logger.debug('Inserisco alla fine')
+               templatetext = "\n\n== Collegamenti esterni ==\n"
+               templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+               self.newtext = self._insert_text(templatetext)
+             
+            if self.manual:
+               logger.info(self.newtext)
+            else:
+               logger.debug(self.newtext)
+
          else:
-            logger.debug('Inserisco alla fine')
-            templatetext = "\n\n== Collegamenti esterni ==\n"
-            templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
-            self.newtext = self._insert_text(templatetext)
-          
-         if self.manual:
-            logger.info(self.newtext)
-         else:
-            logger.debug(self.newtext)
+            logger.debug("disambiguation page - doing nothing")
+            self._disamb = True
+ 
       else:
          logger.debug("{{Thesaurus BNCF}} is already there - doing nothing")
 
@@ -174,6 +183,9 @@ class TemplateAdder(SogBot):
          newtext = newtext + templatetext
          newtext = newtext + self.text[endpos+1:]
          self.newtext = newtext
+
+   def is_disamb(self):
+      return self._disamb
 
    def logoff(self):
       logger.debug("Logoff ...")

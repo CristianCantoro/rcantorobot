@@ -90,6 +90,9 @@ class Term(object):
       self.wikiname, self.wikilink = self.get_wikilink()
       self._registeredPlugin=False
 
+   def __str__(self):
+      return "<Term:(tid={tid},name={name})>".format(tid=self.tid,
+                                                    name=self.name)      
    def get_name(self):
       qname = None
       pred=SKOSNS.prefLabel

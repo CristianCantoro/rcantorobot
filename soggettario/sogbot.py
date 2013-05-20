@@ -159,8 +159,9 @@ throttle_time = cfg['throttle_time']
 logger.debug("throttle_time: %s", throttle_time)
 
 #tidlist=[]
-donetid=[]
-errortid=[]
+doneterm=[]
+errorterm=[]
+disambterm=[]
 logger.info("==========\n\n")
 
 logger.debug("==========\n")
@@ -225,12 +226,14 @@ for tid in tidlist:
       tmpl.run()
       saveres=tmpl.save()
       if saveres:
-         donetid.append(tid)
+         doneterm.append(term)
+      if tmpl.is_disamb():
+         disambterm.append(term)
    except Exception as e:
       logger.error("Term %s raised exception: %s" %(term.name,e))
-      errortid.append(tid)
+      errorterm.append(term)
 
-   logger.debug("donetid: %s" %donetid)
+   logger.debug("donetid: %s" %doneterm)
    logger.info("==========\n")
    time.sleep(throttle_time)
 
@@ -246,15 +249,46 @@ if cfg['donelist'] is not None:
    logger.debug("Writing processed tids in donelist")
    logger.debug("donelist: %s" %donelistname)
    donefile = open(donelistname,'w+')
-   for tid in donetid:
-      donefile.write("%d\n" %tid)
+   for term in doneterm:
+      donefile.write("%d\n" %term.tid)
+
+   donelistname=donelistname+'.term'
+   logger.debug("Writing processed terms in donelist")
+   logger.debug("donelist: %s" %donelistname)
+   donefile = open(donelistname,'w+')
+   for term in doneterm:
+      donefile.write("%s: %d\n" %(term.name,term.tid))
+
+
+if cfg['disamblist'] is not None:
+   disamblistname=cfg['disamblist']
+   logger.debug("Writing disamb tids in disamblist")
+   logger.debug("disamblist: %s" %disamblistname)
+   disambfile = open(disamblistname,'w+')
+   for term in disambterm:
+      disambfile.write("%d\n" %term.tid)
+
+   disamblistname=disamblistname+'.term'
+   logger.debug("Writing disamb terms in disamblist")
+   logger.debug("disamblist: %s" %disamblistname)
+   disambfile = open(disamblistname,'w+')
+   for term in disambterm:
+      disambfile.write("%s: %d\n" %(term.name,term.tid))
+
 
 errorlistname=cfg['errorlist']
-logger.debug("Writing errors")
+logger.debug("Writing errors (tids)")
 logger.debug("errorlist file: %s" %errorlistname)
 errorfile = open(errorlistname,'w+')
-for tid in errortid:
-   errorfile.write("%d\n" %tid)
-   
+for term in errorterm:
+   errorfile.write("%d\n" %term.tid)
+
+errorlistname=errorlistname+'.term'
+logger.debug("Writing errors (terms)")
+logger.debug("errorlist file: %s" %errorlistname)
+errorfile = open(errorlistname,'w+')
+for term in errorterm:
+   errorfile.write("%s: %d\n" %(term.name,term.tid))
+      
 logger.info("Everything done! Great job! Exiting")
 exit(0)

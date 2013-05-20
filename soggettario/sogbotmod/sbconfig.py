@@ -77,6 +77,14 @@ def parsecli(appname, desc, vers, epi):
                       )
 
    parser.add_argument(
+                       '-a',
+                       '--disamb-file',
+                       action=writefile_action,
+                       help='file di output delle pagine di disambiguazione',
+                       dest='disamblist'
+                      )
+   
+   parser.add_argument(
                        '-s',
                        '--skip-file',
                        action=readfile_action,
@@ -231,6 +239,8 @@ def parseall(dizcli):
    cont.add_optional('skiplist',default=None)
 
    cont.add_optional('donelist',default=None)
+   
+   cont.add_optional('disamblist',default=None)
    
    cont.add_optional('errorlist',default="errorlist.txt")
 
