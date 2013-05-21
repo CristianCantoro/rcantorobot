@@ -173,42 +173,9 @@ def write_term(filename,term,msg):
       logger.debug("Writing terms")
       logger.debug("term filename: %s" %filename)
       outfile = open(filename,'a+')
-      outfile.write("%s: %d\n" %(term.name,term.tid))
+      outfile.write("%s: %d\n" %(term.name.encode('ascii','ignore'),term.tid))
       outfile.close()
 
-#if cfg['disamblist'] is not None:
-#    disamblistname=cfg['disamblist']
-#    logger.debug("Writing disamb tids in disamblist")
-#    logger.debug("disamblist: %s" %disamblistname)
-#    disambfile = open(disamblistname,'w+')
-#    for term in disambterm:
-#       disambfile.write("%d\n" %term.tid)
-#  
-#    disamblistname=disamblistname+'.term'
-#    logger.debug("Writing disamb terms in disamblist")
-#    logger.debug("disamblist: %s" %disamblistname)
-#    disambfile = open(disamblistname,'w+')
-#    for term in disambterm:
-#       disambfile.write("%s: %d\n" %(term.name,term.tid))
-
-
-# errorlistname=cfg['errorlist']
-# logger.debug("Writing errors (tids)")
-# logger.debug("errorlist file: %s" %errorlistname)
-# errorfile = open(errorlistname,'w+')
-# for term in errorterm:
-#    errorfile.write("%d\n" %term.tid)
-# 
-# errorlistname=errorlistname+'.term'
-# logger.debug("Writing errors (terms)")
-# logger.debug("errorlist file: %s" %errorlistname)
-# errorfile = open(errorlistname,'w+')
-# for term in errorterm:
-#    errorfile.write("%s: %d\n" %(term.name,term.tid))
-
-doneterm=[]
-errorterm=[]
-disambterm=[]
 logger.info("==========\n\n")
 
 logger.debug("==========\n")
@@ -224,11 +191,19 @@ logger.debug("==========\n\n")
 for tid in tidlist:
 
    if tid in skiplist:
-      logger.debug("Tid %d in skiplist. Skipping ..." %tid)
+      logger.info("Tid %d in skiplist. Skipping ..." %tid)
       logger.info("==========\n")
       continue
 
-   term=sog.Term(tid)
+   try:
+      term=sog.Term(tid)
+   except:
+      logger.error("Term with tid: %d raised Exception" %tid)
+      filename=cfg['errorlist']
+      outfile = open(filename,'a+')
+      outfile.write("%d\n" %tid)
+      outfile.close()
+      continue
 
    logger.info("== PROCESSING: %s ==" %term.name)
    wikiname=None
@@ -237,33 +212,53 @@ for tid in tidlist:
    logger.info("-> Wikipedia page: %s - url: %s - (tid:%d)" %(wikiname,
                term.wikilink,term.tid))
 
-   uitems=term.used_items()
-   logger.info("Sinonimi:")
-   for u in uitems:
-      logger.info("* %s, %s, %s" %(u.name, u.wikilink, u.tid))
-
-   ritems=term.related_items()
-   logger.info("Voci correlate:")
-   for r in ritems:
-      logger.info("* %s, %s, %s" %(r.name, r.wikilink, r.tid))
-
-   nitems=term.narrower_items()
-   logger.info("Narrower:")
-   for n in nitems:
-      logger.info("* %s, %s, %s" %(n.name, n.wikilink, n.tid))
-
-   bitems=term.broader_items()
-   logger.info("Broader:")
-   for b in bitems:
-      logger.info("* %s, %s, %s" %(b.name, b.wikilink, b.tid))
-
-   LinkRetriever()
+#    uitems=[]
+#    try:
+#       uitems=term.used_items()
+#    except Exception as e:
+#       logger.error("Term %s (tid: %d) UITEMS raised exception: %s" %(term.name,term.tid,e))
+#       write_term(cfg['errorlist'],term,'Error, writing to errorlist')
+#    
+#    logger.info("Sinonimi:")
+#    for u in uitems:
+#       logger.info("* %s, %s, %s" %(u.name, u.wikilink, u.tid))
+# 
+#    ritems=[]
+#    try:
+#       ritems=term.related_items()
+#    except Exception as e:
+#       logger.error("Term %s (tid: %d) RITEMS raised exception: %s" %(term.name,term.tid,e))
+#       write_term(cfg['errorlist'],term,'Error, writing to errorlist')
+# 
+#    logger.info("Voci correlate:")
+#    for r in ritems:
+#       logger.info("* %s, %s, %s" %(r.name, r.wikilink, r.tid))
+# 
+#    nitems=[]
+#    try:
+#       nitems=term.narrower_items()
+#    except Exception as e:
+#       logger.error("Term %s (tid: %d) NITEMS raised exception: %s" %(term.name,term.tid,e))
+#       write_term(cfg['errorlist'],term,'Error, writing to errorlist')
+# 
+#    logger.info("Narrower:")
+#    for n in nitems:
+#       logger.info("* %s, %s, %s" %(n.name, n.wikilink, n.tid))
+# 
+#    bitems=[]
+#    try:
+#       bitems=term.broader_items()
+#    except Exception as e:
+#       logger.error("Term %s (tid: %d) BITEMS raised exception: %s" %(term.name,term.tid,e))
+#       write_term(cfg['errorlist'],term,'Error, writing to errorlist')
+# 
+#    logger.info("Broader:")
+#    for b in bitems:
+#       logger.info("* %s, %s, %s" %(b.name, b.wikilink, b.tid))
+#
+#    LinkRetriever()
 
    tmpl=TemplateAdder(term=term,
-                      uitems=uitems,
-                      ritems=ritems,
-                      nitems=nitems,
-                      bitems=bitems,
                       site=site,
                       dry=dry,
                       dry_wiki=dry_wiki,
@@ -274,16 +269,15 @@ for tid in tidlist:
       tmpl.run()
       saveres=tmpl.save()
       if saveres:
-         write_term(cfg['donelist'],term,'Writing processed terms to donelist')
+         write_term(cfg['donelist'],term,'Writing processed term to donelist')
       if tmpl.is_disamb():
-         write_term(cfg['disamblist'],term,'Writing disambig terms to disamblist')
+         write_term(cfg['disamblist'],term,'Writing disambig term to disamblist')
       if tmpl.has_nodata():
-         write_term(cfg['nodatalist'],term,'Writing processed terms to nodatalist')
+         write_term(cfg['nodatalist'],term,'Writing term to nodatalist')
    except Exception as e:
-      logger.error("Term %s raised exception: %s" %(term.name,e))
-      errorterm.append(term)
+      logger.error("Template of term %s (tid: %d) raised exception: %s" %(term.name,term.tid,e))
+      write_term(cfg['errorlist'],term,'Error, writing to errorlist')
 
-   logger.debug("donetid: %s" %doneterm)
    logger.info("==========\n")
    time.sleep(throttle_time)
 

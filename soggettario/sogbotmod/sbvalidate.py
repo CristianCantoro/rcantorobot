@@ -25,9 +25,9 @@ def writefile_check(value):
       logger.error(msg)
       raise ValidateError(msg)
       
-   logger.debug(value)
-   if os.path.exists(value):
-      msg = '"%s" already exists' %value
+#    logger.debug(value)
+#    if os.path.exists(value):
+#       msg = '"%s" already exists' %value
       
       logger.error(msg)
       raise ValidateError(msg)
@@ -40,29 +40,29 @@ def writefile_check(value):
    return value
 
 def readpath_check(value):
-    value = os.path.abspath(os.path.normpath(value))
-    #print "path: %s" %value
-    if isinstance(value, list):
+   value = os.path.abspath(os.path.normpath(value))
+   #print "path: %s" %value
+   if isinstance(value, list):
       msg = 'A list was passed when a path with read permission was expected'
       logger.error(msg)
       raise ValidateError(msg)
       
-    #print "type: ", type(value)
-    #print os.path.exists(value)
+   #print "type: ", type(value)
+   #print os.path.exists(value)
     
-    logger.debug(value)
-    if not os.path.exists(value):
+   logger.debug(value)
+   if not os.path.exists(value):
       msg = '"%s" is not a valid path' % value
       logger.error(msg)
       
       raise ValidateError(msg)
       
-    elif not os.access(value, os.R_OK):
+   elif not os.access(value, os.R_OK):
       msg = 'User has not the valid permissions to read: "%s"' % value
       logger.error(msg)
       raise ValidateError(msg)
             
-    return value
+   return value
 
 def readfile_check(value):
     value = os.path.abspath(os.path.normpath(value))

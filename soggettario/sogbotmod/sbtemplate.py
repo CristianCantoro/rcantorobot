@@ -26,22 +26,19 @@ import re
 from sbbot import SogBot
 
 CLEANREGEX = re.compile("\n==\s*collegamenti esterni\s*==\s*\n\*\s*{{Thesaurus\s*BNCF(.*)}}",flags=re.IGNORECASE)
-EXTLINKREGEX =re.compile("http://",flags=re.IGNORECASE)
+EXTLINKREGEX =re.compile("\[http://(.*)\](.*)\n",flags=re.IGNORECASE)
 THESREGEX = re.compile("{{Thesaurus BNCF(.*)}}",flags=re.IGNORECASE)
 DISAMBREGEX=re.compile("{{disambigua}}",flags=re.IGNORECASE)
 LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
 CATREGEX = re.compile("\[\[Categoria:(.*)\]\]",flags=re.IGNORECASE)
+SUBSEZREGEX = re.compile("===(.*)===",flags=re.IGNORECASE)
 
 
 class TemplateAdder(SogBot):
 
    def __init__(self,
                 term,
-                uitems=None,
-                ritems=None,
-                nitems=None,
-                bitems=None,
                 site=None,
                 dry=False,
                 dry_wiki=False,
@@ -50,10 +47,6 @@ class TemplateAdder(SogBot):
                ):
 
       self.term = term
-      self.uitems = uitems
-      self.ritems = ritems
-      self.nitems = nitems
-      self.bitems = bitems
       if site is None:
          self.site = pywikibot.Site()
       else:
@@ -136,23 +129,41 @@ class TemplateAdder(SogBot):
          if not match_dis:
             match1=LINKREGEX.search(self.newtext)
             match2=PORTALREGEX.search(self.newtext)
-            match3=CATREGEX.search(self.newtext)            
+            match3=CATREGEX.search(self.newtext)       
+            
             if match1:
                logger.debug('Trovato "== Collegamenti esterni =="')
+               endpos = match1.end()
+               startpos = len(self.newtext)
+               match_sez=SUBSEZREGEX.search(self.newtext[endpos+1:])
+               if match_sez:
+                  startpos = endpos+match_sez.end() 
+               elif match2:
+                  startpos = match2.start()
+               elif match3:
+                  startpos = match3.start()
+                  
+               lastlinkpos=startpos
+               restext=self.newtext[endpos+1:startpos-1]
+               logger.debug(restext)
+               match4=EXTLINKREGEX.finditer(restext)
+               if match4:
+                  lastlinkpos = endpos+[m.end() for m in match4][-1]
+
                if self.target:
-                  templatetext = "\n* {{Thesaurus BNCF}}\n"
+                  templatetext = "\n* {{Thesaurus BNCF}}"
                else:
-                  templatetext = "\n* {{Thesaurus BNCF|%d}}\n" %self.term.tid
-               pos = match1.end()
-               logger.debug(pos)
-               self.newtext = self._insert_text(templatetext,endpos=pos)
+                  templatetext = "\n* {{Thesaurus BNCF|%d}}" %self.term.tid
+               
+               logger.debug(endpos)
+               self.newtext = self._insert_text(templatetext,startpos=lastlinkpos)
             elif match2:
                logger.debug('Trovato "{{Portale}}"')
                templatetext = "== Collegamenti esterni ==\n"
                if self.target:
-                  templatetext += "* {{Thesaurus BNCF}}\n"
+                  templatetext += "* {{Thesaurus BNCF}}\n\n"
                else:
-                  templatetext += "* {{Thesaurus BNCF|%d}}\n" %self.term.tid
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
                pos = match2.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
@@ -160,9 +171,9 @@ class TemplateAdder(SogBot):
                logger.debug('Trovata "[Categoria]"')
                templatetext = "== Collegamenti esterni ==\n"              
                if self.target:
-                  templatetext += "* {{Thesaurus BNCF}}\n"
+                  templatetext += "* {{Thesaurus BNCF}}\n\n"
                else:
-                  templatetext += "* {{Thesaurus BNCF|%d}}\n" %self.term.tid
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
                pos = match3.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
@@ -192,7 +203,9 @@ class TemplateAdder(SogBot):
       
       if not self.dry or self.dry_wiki:
          #comment="Aggiungo il template {{Thesaurus BNCF}}"
-         comment="Tolgo il parametro di {{Thesaurus BNCF}} per usarlo con Wikidata"
+         comment="Aggiungo {{Thesaurus BNCF}} si veda "
+         comment+="http://it.wikipedia.org/wiki/Discussioni_progetto:Coordinamento/Bibliografia_e_fonti#Collaborazione_come_Biblioteca_Nazionale_di_Firenze"
+         comment+=" per segnalazioni"
          logger.info("Wikidata target: %s" %str(self.target))
          saveres=super(TemplateAdder, self).save(text=self.newtext,
                                                  page=self.page,
