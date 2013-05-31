@@ -153,7 +153,7 @@ skiplist=[]
 if cfg['skiplist'] is not None:
    skipfile = open(cfg['skiplist'])
    skiplist = skipfile.readlines() 
-   skiplist = [int(s.strip()) for s in skiplist]
+   skiplist = [int(s.strip()) for s in skiplist if s != '\n']
 logger.debug('skiplist: %s' %skiplist)
 
 throttle_time = cfg['throttle_time']
@@ -175,6 +175,14 @@ def write_term(filename,term,msg):
       outfile = open(filename,'a+')
       outfile.write("%s: %d\n" %(term.name.encode('ascii','ignore'),term.tid))
       outfile.close()
+
+def write_error_tid(tid,msg):
+   logger.error(msg)
+   filename=cfg['errorlist']
+   outfile = open(filename,'a+')
+   outfile.write("%d\n" %tid)
+   outfile.close()
+
 
 logger.info("==========\n\n")
 
@@ -198,17 +206,21 @@ for tid in tidlist:
    try:
       term=sog.Term(tid)
    except:
-      logger.error("Term with tid: %d raised Exception" %tid)
-      filename=cfg['errorlist']
-      outfile = open(filename,'a+')
-      outfile.write("%d\n" %tid)
-      outfile.close()
+      msg="Term with tid: %d raised Exception" %tid
+      write_error_tid(tid,msg)
       continue
+
+
 
    logger.info("== PROCESSING: %s ==" %term.name)
    wikiname=None
    if term.wikiname:
       wikiname=term.wikiname.replace('_',' ')
+   else:
+      msg="Term with tid: %d. Term's Wikipedia page has no name" %tid
+      write_error_tid(tid,msg)
+      continue
+
    logger.info("-> Wikipedia page: %s - url: %s - (tid:%d)" %(wikiname,
                term.wikilink,term.tid))
 

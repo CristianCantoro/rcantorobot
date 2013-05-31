@@ -33,7 +33,10 @@ LINKREGEX = re.compile("==\s*collegamenti esterni\s*==",flags=re.IGNORECASE)
 PORTALREGEX = re.compile("{{portale\|(.*)}}",flags=re.IGNORECASE)
 CATREGEX = re.compile("\[\[Categoria:(.*)\]\]",flags=re.IGNORECASE)
 SUBSEZREGEX = re.compile("===(.*)===",flags=re.IGNORECASE)
-
+INTERPROGREGEX = re.compile("{{interprogetto(.*)}}\n",flags=re.IGNORECASE)
+TEMPLATEREGEX = re.compile("\n{{(.*)}}\n",flags=re.IGNORECASE)
+CORRELSEZREGEX = re.compile("\n==\s*voci correlate\s*==",flags=re.IGNORECASE)
+CORRELLINKREGEX = re.compile("\*\s*\[\[(.*)\]\](.*)\n",flags=re.IGNORECASE)
 
 class TemplateAdder(SogBot):
 
@@ -121,34 +124,40 @@ class TemplateAdder(SogBot):
          self._nodata = True
          logger.debug("No data from Wikidata")
       
-      match0=THESREGEX.search(self.newtext)
+      match_thes=THESREGEX.search(self.newtext)
       
-      if not match0:
+      if not match_thes:
          match_dis=DISAMBREGEX.search(self.newtext)
          
          if not match_dis:
-            match1=LINKREGEX.search(self.newtext)
-            match2=PORTALREGEX.search(self.newtext)
-            match3=CATREGEX.search(self.newtext)       
-            
-            if match1:
+            match_link=LINKREGEX.search(self.newtext)
+            match_portal=PORTALREGEX.search(self.newtext)
+            match_cat=CATREGEX.search(self.newtext)       
+            match_interprog=INTERPROGREGEX.search(self.newtext)
+            match_correl=CORRELSEZREGEX.search(self.newtext)
+
+            if match_link:
                logger.debug('Trovato "== Collegamenti esterni =="')
-               endpos = match1.end()
+               endpos = match_link.end()
                startpos = len(self.newtext)
                match_sez=SUBSEZREGEX.search(self.newtext[endpos+1:])
                if match_sez:
                   startpos = endpos+match_sez.end() 
-               elif match2:
-                  startpos = match2.start()
-               elif match3:
-                  startpos = match3.start()
+               elif match_portal:
+                  startpos = match_portal.start()
+               elif match_cat:
+                  startpos = match_cat.start()
                   
-               lastlinkpos=startpos
+               lastlinkpos=startpos-1
                restext=self.newtext[endpos+1:startpos-1]
                logger.debug(restext)
-               match4=EXTLINKREGEX.finditer(restext)
-               if match4:
-                  lastlinkpos = endpos+[m.end() for m in match4][-1]
+               match_extlink=EXTLINKREGEX.finditer(restext)
+               if match_extlink:
+                  ends=[m.end() for m in match_extlink]
+                  if len(ends) > 0:
+                     lastlinkpos = endpos+ends[-1]
+                  else:
+                     lastlinkpos=endpos
 
                if self.target:
                   templatetext = "\n* {{Thesaurus BNCF}}"
@@ -157,24 +166,74 @@ class TemplateAdder(SogBot):
                
                logger.debug(endpos)
                self.newtext = self._insert_text(templatetext,startpos=lastlinkpos)
-            elif match2:
+            elif match_interprog:
+               logger.debug('Trovato "{{inteprogetto}}"')
+               templatetext = "\n== Collegamenti esterni ==\n"
+               if self.target:
+                  templatetext += "* {{Thesaurus BNCF}}\n"
+               else:
+                  templatetext += "* {{Thesaurus BNCF|%d}}\n" %self.term.tid
+               pos = match_interprog.end()
+               logger.debug(pos)
+               self.newtext = self._insert_text(templatetext,endpos=pos)
+            elif match_correl:
+               logger.debug('Trovato "== Voci correlate =="')
+               templatetext = "\n\n== Collegamenti esterni ==\n"
+               endpos = match_correl.end()
+               startpos = len(self.newtext)
+               if match_portal:
+                  startpos = match_portal.start()
+               elif match_cat:
+                  startpos = match_cat.start()
+                  
+               lastlinkpos=startpos
+               restext=self.newtext[endpos+1:startpos-1]
+               logger.debug(restext)
+               match_correllink=CORRELLINKREGEX.finditer(self.newtext[endpos+1:])
+
+               if match_correllink:
+                  ends=[m.end() for m in match_correllink]
+                  if len(ends) >0:
+                     lastlinkpos = endpos+ends[-1]
+                  else:
+                     lastlinkpos = endpos+1
+
+               if self.target:
+                  templatetext += "* {{Thesaurus BNCF}}"
+               else:
+                  templatetext += "* {{Thesaurus BNCF|%d}}" %self.term.tid
+               
+               logger.debug(endpos)
+               self.newtext = self._insert_text(templatetext,startpos=lastlinkpos)
+
+            elif match_portal:
                logger.debug('Trovato "{{Portale}}"')
                templatetext = "== Collegamenti esterni ==\n"
                if self.target:
                   templatetext += "* {{Thesaurus BNCF}}\n\n"
                else:
                   templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
-               pos = match2.start()
+               pos = match_portal.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
-            elif match3:
+#             elif match_template:
+#                logger.debug('Trovato "{{Portale}}"')
+#                templatetext = "== Collegamenti esterni ==\n"
+#                if self.target:
+#                   templatetext += "* {{Thesaurus BNCF}}\n\n"
+#                else:
+#                   templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
+#                pos = match_portal.start()
+#                logger.debug(pos)
+#                self.newtext = self._insert_text(templatetext,startpos=pos)            
+            elif match_cat:
                logger.debug('Trovata "[Categoria]"')
                templatetext = "== Collegamenti esterni ==\n"              
                if self.target:
                   templatetext += "* {{Thesaurus BNCF}}\n\n"
                else:
                   templatetext += "* {{Thesaurus BNCF|%d}}\n\n" %self.term.tid
-               pos = match3.start()
+               pos = match_cat.start()
                logger.debug(pos)
                self.newtext = self._insert_text(templatetext,startpos=pos)
             else:
@@ -203,9 +262,8 @@ class TemplateAdder(SogBot):
       
       if not self.dry or self.dry_wiki:
          #comment="Aggiungo il template {{Thesaurus BNCF}}"
-         comment="Aggiungo {{Thesaurus BNCF}} si veda "
-         comment+="http://it.wikipedia.org/wiki/Discussioni_progetto:Coordinamento/Bibliografia_e_fonti#Collaborazione_come_Biblioteca_Nazionale_di_Firenze"
-         comment+=" per segnalazioni"
+         comment="inserimento di {{Thesaurus BNCF}}, "
+         comment+="[[Discussioni progetto:Coordinamento/Bibliografia e fonti#Collaborazione come Biblioteca Nazionale di Firenze|discussione]]"
          logger.info("Wikidata target: %s" %str(self.target))
          saveres=super(TemplateAdder, self).save(text=self.newtext,
                                                  page=self.page,
@@ -221,16 +279,16 @@ class TemplateAdder(SogBot):
       logger.debug("Clean...")
       super(TemplateAdder, self).treat(self.page)
       self.newtext = self.text
-      match0=CLEANREGEX.search(self.text)
+      match_clean=CLEANREGEX.search(self.text)
       
-      if match0:
+      if match_clean:
          logger.debug("Trovato {{ThesaurusBNCF}}")
-         startpos = match0.start()
-         endpos = match0.end()
+         startpos = match_clean.start()
+         endpos = match_clean.end()
          restext=self.text[endpos+1:]
-         match1=EXTLINKREGEX.search(restext)
+         match_extlink=EXTLINKREGEX.search(restext)
          
-         if match1:
+         if match_extlink:
             templatetext = "== Collegamenti esterni =="
             newtext = self.text[:startpos]
             newtext = newtext + templatetext
